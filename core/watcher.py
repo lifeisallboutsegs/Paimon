@@ -1,6 +1,7 @@
 
 import asyncio
 import logging
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -28,12 +29,13 @@ class CogFileHandler(FileSystemEventHandler):
         if path.suffix != ".py" or path.stem.startswith("_"):
             return
         
-        # Debounce: don't reload too often
+        # Debounce: don't reload too often (use time.time() since we're in a thread)
+        now = time.time()
         if path in self.last_reload:
-            if (asyncio.get_event_loop().time() - self.last_reload[path]) < 1.0:
+            if (now - self.last_reload[path]) < 1.0:
                 return
         
-        self.last_reload[path] = asyncio.get_event_loop().time()
+        self.last_reload[path] = now
         
         # Get the extension name
         cogs_dir = Path(__file__).parent.parent / "cogs"
@@ -65,14 +67,15 @@ class CogWatcher:
         self.bot = bot
         self.observer: Optional[Observer] = None
         self.cogs_dir = Path(__file__).parent.parent / "cogs"
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
 
     async def start(self):
         """Start the watcher!"""
         if self.observer is not None:
             return
         
-        loop = asyncio.get_event_loop()
-        handler = CogFileHandler(self.bot, loop)
+        self.loop = asyncio.get_event_loop()
+        handler = CogFileHandler(self.bot, self.loop)
         
         self.observer = Observer()
         self.observer.schedule(handler, str(self.cogs_dir), recursive=True)

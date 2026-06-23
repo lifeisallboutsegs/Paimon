@@ -120,9 +120,11 @@ class FunAI(commands.Cog):
         self.key_index = (self.key_index + 1) % len(self.clients)
         return client
 
-    async def _generate_response(self, system_prompt: str, user_prompt: str, model: str = "llama-3.3-70b-versatile", max_tokens=1024, use_tools=True):
+    async def _generate_response(self, system_prompt: str, user_prompt: str, model: str = "llama-3.3-70b-versatile", max_tokens=1024, use_tools=True, fail_silent=False):
         client = self._get_client()
         if not client:
+            if fail_silent:
+                return None
             return "Sorry, my AI brain is offline right now! Ask the owner to set GROQ_API_KEYS!"
         
         messages = [
@@ -181,6 +183,8 @@ class FunAI(commands.Cog):
             return completion.choices[0].message.content
         except Exception as e:
             print(f"AI error: {e}")
+            if fail_silent:
+                return None
             return "Oops! My AI brain had a little oopsie! Try again later!"
 
     @commands.Cog.listener()
@@ -242,7 +246,7 @@ You are a witty, savage, occasionally funny, very human-like Discord bot. Rules:
 5. Be conversational, use slang/emojis sometimes.
 6. You can reply to the current message directly, or reference earlier messages."""
             
-            reply = await self._generate_response(prompt, "What's your reply?", max_tokens=300)
+            reply = await self._generate_response(prompt, "What's your reply?", max_tokens=300, fail_silent=True)
             
             if reply and reply.strip() != "[NO REPLY]" and len(reply) < 2000:
                 async with message.channel.typing():
