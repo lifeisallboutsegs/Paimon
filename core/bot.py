@@ -7,6 +7,8 @@ import discord
 from discord.ext import commands
 
 from config import Config
+from core.help import CustomHelpCommand
+from core.watcher import CogWatcher
 
 logger = logging.getLogger("bot.core")
 
@@ -30,16 +32,22 @@ class Bot(commands.Bot):
             intents=intents,
             case_insensitive=True,
             owner_ids=Config.OWNER_IDS or None,
-            help_command=None,  # Disable built-in help command for our custom one
+            help_command=CustomHelpCommand(),
         )
         self.db = db
         self.start_time = discord.utils.utcnow()
+        self.watcher = CogWatcher(self)
 
     async def setup_hook(self) -> None:
         await self._load_cogs()
-        # Slash commands are synced manually via the "!sync" admin command
+        await self.watcher.start()
+        # Slash commands are synced manually via the "!sync" admin command      
         # instead of on every startup -- global syncs can take up to an
         # hour to propagate, so doing it on every restart is wasteful.
+
+    async def close(self) -> None:
+        await self.watcher.stop()
+        await super().close()
 
     async def _load_cogs(self) -> None:
         cogs_dir = Path(__file__).resolve().parent.parent / "cogs"
