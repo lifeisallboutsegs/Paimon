@@ -3,13 +3,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import aiohttp
-import random
 
 from utils import embeds
 
 
-class FunAPI(commands.Cog):
-    """API-based fun commands!"""
+class FunImages(commands.Cog):
+    """Random images and facts commands!"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -47,18 +46,6 @@ class FunAPI(commands.Cog):
             await ctx.send(embed=embed)
         else:
             await ctx.send(embed=embeds.error("Oops!", "Couldn't get a dog picture!"))
-
-    @commands.hybrid_command(name="jokeapi", description="Get a random joke from JokeAPI!")
-    async def jokeapi(self, ctx: commands.Context):
-        data = await self._fetch("https://v2.jokeapi.dev/joke/Any?safe-mode")
-        if data:
-            if data["type"] == "single":
-                embed = embeds.info("😂 Joke!", data["joke"])
-            else:
-                embed = embeds.info("😂 Joke!", f"**{data['setup']}**\n\n{data['delivery']}")
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send(embed=embeds.error("Oops!", "Couldn't get a joke!"))
 
     @commands.hybrid_command(name="meme", description="Get a random meme!")
     async def meme(self, ctx: commands.Context):
@@ -122,4 +109,4 @@ class FunAPI(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(FunAPI(bot))
+    await bot.add_cog(FunImages(bot))

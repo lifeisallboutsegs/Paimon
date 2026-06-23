@@ -8,13 +8,13 @@ from discord.ext import commands
 from utils import embeds
 
 
-class FunRandom(commands.Cog):
-    """Random fun commands"""
+class FunMisc(commands.Cog):
+    """Miscellaneous fun commands!"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.hybrid_command(name="joke", description="Tell a random joke.")
+    @commands.hybrid_command(name="joke", description="Tell a random joke!")
     async def joke(self, ctx: commands.Context):
         jokes = [
             "Why don't scientists trust atoms? Because they make up everything!",
@@ -28,7 +28,7 @@ class FunRandom(commands.Cog):
         ]
         await ctx.send(embed=embeds.info("😂 Joke", random.choice(jokes)))
 
-    @commands.hybrid_command(name="random", description="Get a random number!")
+    @commands.hybrid_command(name="random_num", description="Get a random number!")
     @app_commands.describe(min_num="Minimum number", max_num="Maximum number")
     async def random_number(self, ctx: commands.Context, min_num: int = 1, max_num: int = 100):
         if min_num > max_num:
@@ -47,4 +47,4 @@ class FunRandom(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(FunRandom(bot))
+    await bot.add_cog(FunMisc(bot))

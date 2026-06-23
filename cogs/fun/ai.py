@@ -189,20 +189,17 @@ class FunAI(commands.Cog):
             return
         
         # Check if it's a command
+        is_command = False
         try:
             guild_cfg = await self.bot.db.get_guild_config(message.guild.id)
             prefix = guild_cfg.get("prefix") or Config.PREFIX
             if message.content.startswith(prefix):
-                # It's a command, just store context and return
-                self.context_store[message.guild.id].append({
-                    "author_id": message.author.id,
-                    "author_name": message.author.display_name,
-                    "content": message.content,
-                    "is_bot": message.author.bot
-                })
-                return
+                is_command = True
         except:
             pass
+        
+        if is_command:
+            return
         
         # Check if bot is mentioned
         bot_mentioned = self.bot.user.mentioned_in(message)
