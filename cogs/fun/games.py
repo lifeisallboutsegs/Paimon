@@ -47,6 +47,12 @@ class FunGames(commands.Cog):
             await ctx.send(embed=embeds.error("Invalid Choice", "Choose rock, paper, or scissors!"))
             return
         bot_choice = random.choice(["rock", "paper", "scissors"])
+        # Add emojis
+        emoji_map = {
+            "rock": "✊",
+            "paper": "✋",
+            "scissors": "✌️"
+        }
         if choice == bot_choice:
             result = "It's a tie!"
         elif (choice == "rock" and bot_choice == "scissors") or \
@@ -57,7 +63,7 @@ class FunGames(commands.Cog):
             result = "You lose!"
         await ctx.send(embed=embeds.info(
             "Rock-Paper-Scissors",
-            f"You chose: **{choice}**\nBot chose: **{bot_choice}**\n\n{result}"
+            f"You chose: {emoji_map[choice]} **{choice}**\nBot chose: {emoji_map[bot_choice]} **{bot_choice}**\n\n{result}"
         ))
 
 
