@@ -24,8 +24,8 @@ async def main() -> None:
     bot = Bot(db)
     try:
         await bot.start(Config.TOKEN)
-    except KeyboardInterrupt:
-        logger.info("Received shutdown signal (Ctrl+C). Closing bot...")
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("Received shutdown signal. Closing bot...")
     finally:
         if not bot.is_closed():
             await bot.close()

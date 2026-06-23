@@ -188,6 +188,22 @@ class FunAI(commands.Cog):
         if message.author.bot or not message.guild or len(message.content) < 3:
             return
         
+        # Check if it's a command
+        try:
+            guild_cfg = await self.bot.db.get_guild_config(message.guild.id)
+            prefix = guild_cfg.get("prefix") or Config.PREFIX
+            if message.content.startswith(prefix):
+                # It's a command, just store context and return
+                self.context_store[message.guild.id].append({
+                    "author_id": message.author.id,
+                    "author_name": message.author.display_name,
+                    "content": message.content,
+                    "is_bot": message.author.bot
+                })
+                return
+        except:
+            pass
+        
         # Check if bot is mentioned
         bot_mentioned = self.bot.user.mentioned_in(message)
         
@@ -204,11 +220,16 @@ class FunAI(commands.Cog):
         if not bot_mentioned and (current_time - self.last_reply[message.guild.id] < 300):
             return
         
-        # Generate reply
-        context = list(self.context_store[message.guild.id])
-        context_str = "\n".join([f"[USER:{msg['author_id']}] {msg['author_name']}: {msg['content']}" for msg in context])
+        # Don't do anything if no API keys available
+        if not self.clients:
+            return
         
-        prompt = f"""Conversation context:
+        try:
+            # Generate reply
+            context = list(self.context_store[message.guild.id])
+            context_str = "\n".join([f"[USER:{msg['author_id']}] {msg['author_name']}: {msg['content']}" for msg in context])
+            
+            prompt = f"""Conversation context:
 {context_str}
 
 Your name: {self.bot.user.display_name}
@@ -223,14 +244,17 @@ You are a witty, savage, occasionally funny, very human-like Discord bot. Rules:
 4. Keep replies SHORT, under 300 characters.
 5. Be conversational, use slang/emojis sometimes.
 6. You can reply to the current message directly, or reference earlier messages."""
-        
-        reply = await self._generate_response(prompt, "What's your reply?", max_tokens=300)
-        
-        if reply and reply.strip() != "[NO REPLY]" and len(reply) < 2000:
-            async with message.channel.typing():
-                await asyncio.sleep(0.3 + random.random() * 1.5)  # More natural typing delay
-            await message.reply(reply.strip())
-            self.last_reply[message.guild.id] = current_time
+            
+            reply = await self._generate_response(prompt, "What's your reply?", max_tokens=300)
+            
+            if reply and reply.strip() != "[NO REPLY]" and len(reply) < 2000:
+                async with message.channel.typing():
+                    await asyncio.sleep(0.3 + random.random() * 1.5)  # More natural typing delay
+                await message.reply(reply.strip())
+                self.last_reply[message.guild.id] = current_time
+        except Exception as e:
+            # Log error, don't send anything in chat
+            print(f"On-chat AI error: {e}")
 
     @commands.hybrid_command(name="ask", description="Ask the AI anything!")
     @app_commands.describe(question="Your question!")

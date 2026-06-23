@@ -30,7 +30,7 @@ class Bot(commands.Bot):
             intents=intents,
             case_insensitive=True,
             owner_ids=Config.OWNER_IDS or None,
-            help_command=commands.DefaultHelpCommand(no_category="Commands"),
+            help_command=None,  # Disable built-in help command for our custom one
         )
         self.db = db
         self.start_time = discord.utils.utcnow()
