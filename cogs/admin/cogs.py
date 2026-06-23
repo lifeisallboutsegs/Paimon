@@ -6,7 +6,6 @@ import random
 
 from discord.ext import commands
 
-from utils import embeds
 from utils.checks import is_owner
 from config import Config
 from groq import AsyncGroq
@@ -50,9 +49,9 @@ class AdminCogs(commands.Cog):
                 extension = f"cogs.{category_or_name}"
             
             await self.bot.load_extension(extension)
-            await ctx.send(embed=embeds.success("Cog Loaded", extension))
+            await ctx.send(f"Loaded cog: {extension}")
         except Exception as exc:
-            await ctx.send(embed=embeds.error("Load Failed", str(exc)))
+            await ctx.send(f"Failed to load: {exc}")
 
     @commands.command(name="unload")
     async def unload_cog(self, ctx: commands.Context, category_or_name: str, name: str = None):
@@ -64,9 +63,9 @@ class AdminCogs(commands.Cog):
                 extension = f"cogs.{category_or_name}"
             
             await self.bot.unload_extension(extension)
-            await ctx.send(embed=embeds.success("Cog Unloaded", extension))
+            await ctx.send(f"Unloaded cog: {extension}")
         except Exception as exc:
-            await ctx.send(embed=embeds.error("Unload Failed", str(exc)))
+            await ctx.send(f"Failed to unload: {exc}")
 
     @commands.command(name="reload")
     async def reload_cog(self, ctx: commands.Context, category_or_name: str, name: str = None):
@@ -78,9 +77,9 @@ class AdminCogs(commands.Cog):
                 extension = f"cogs.{category_or_name}"
             
             await self.bot.reload_extension(extension)
-            await ctx.send(embed=embeds.success("Cog Reloaded", extension))
+            await ctx.send(f"Reloaded cog: {extension}")
         except Exception as exc:
-            await ctx.send(embed=embeds.error("Reload Failed", str(exc)))
+            await ctx.send(f"Failed to reload: {exc}")
 
     @commands.command(name="install")
     async def install_cog(self, ctx: commands.Context, url: str, name: str = None, category: str = None):
@@ -92,7 +91,7 @@ class AdminCogs(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as resp:
                     if resp.status != 200:
-                        await ctx.send(embed=embeds.error("Download Failed", f"Status: {resp.status}"))
+                        await ctx.send(f"Failed to download: status {resp.status}")
                         return
                     content = await resp.text()
             
@@ -102,13 +101,13 @@ class AdminCogs(commands.Cog):
             
             category = category.lower()
             if category not in valid_categories:
-                await ctx.send(embed=embeds.error("Invalid Category", f"Valid categories: {', '.join(valid_categories)}"))
+                await ctx.send(f"Invalid category! Valid options: {', '.join(valid_categories)}")
                 return
             
             # Ensure name is valid
             name = name.lower().replace(" ", "_").replace("-", "_")
             if not name or not name.isprintable():
-                await ctx.send(embed=embeds.error("Invalid Name", "Please provide a valid cog name!"))
+                await ctx.send("Invalid name! Please provide a valid cog name!")
                 return
 
             cogs_dir = Path(__file__).resolve().parent.parent
@@ -122,9 +121,9 @@ class AdminCogs(commands.Cog):
             # Load the cog
             extension_path = f"cogs.{category}.{name}"
             await self.bot.load_extension(extension_path)
-            await ctx.send(embed=embeds.success("Cog Installed", f"Installed and loaded {extension_path}!"))
+            await ctx.send(f"Installed and loaded cog: {extension_path}")
         except Exception as exc:
-            await ctx.send(embed=embeds.error("Install Failed", str(exc)))
+            await ctx.send(f"Failed to install: {exc}")
     
     async def _suggest_cog_info(self, content: str, valid_categories: list, name: str = None, category: str = None):
         """Use AI to suggest cog name/category (only a small sample of content)"""

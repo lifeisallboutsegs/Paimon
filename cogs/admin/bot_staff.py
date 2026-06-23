@@ -3,7 +3,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
 from utils.checks import is_owner
 
 
@@ -32,11 +31,11 @@ class AdminStaff(commands.Cog):
         current = await self.bot.db.kv_get("bot_admins", "list")
         admins = set(map(int, current.split(","))) if current else set()
         if member.id in admins:
-            await ctx.send(embed=embeds.error("Error", "This user is already a bot admin!"))
+            await ctx.send("This user is already a bot admin!")
             return
         admins.add(member.id)
         await self.bot.db.kv_set("bot_admins", "list", ",".join(map(str, admins)))
-        await ctx.send(embed=embeds.success("Bot Admin Added", f"Added {member.mention} as bot admin!"))
+        await ctx.send(f"Added {member.mention} as bot admin!")
 
     @botadmin.command(name="remove", description="Remove a bot admin")
     @app_commands.describe(member="Member to remove as bot admin")
@@ -44,18 +43,18 @@ class AdminStaff(commands.Cog):
         current = await self.bot.db.kv_get("bot_admins", "list")
         admins = set(map(int, current.split(","))) if current else set()
         if member.id not in admins:
-            await ctx.send(embed=embeds.error("Error", "This user is not a bot admin!"))
+            await ctx.send("This user is not a bot admin!")
             return
         admins.remove(member.id)
         await self.bot.db.kv_set("bot_admins", "list", ",".join(map(str, admins)))
-        await ctx.send(embed=embeds.success("Bot Admin Removed", f"Removed {member.mention} as bot admin!"))
+        await ctx.send(f"Removed {member.mention} as bot admin!")
 
     @botadmin.command(name="list", description="List all bot admins")
     async def list_bot_admins(self, ctx: commands.Context):
         current = await self.bot.db.kv_get("bot_admins", "list")
         admins = list(map(int, current.split(","))) if current else []
         if not admins:
-            await ctx.send(embed=embeds.info("Bot Admins", "No bot admins configured!"))
+            await ctx.send("No bot admins configured!")
             return
         mentions = []
         for uid in admins:
@@ -64,7 +63,7 @@ class AdminStaff(commands.Cog):
                 mentions.append(user.mention)
             else:
                 mentions.append(f"Unknown User ({uid})")
-        await ctx.send(embed=embeds.info("Bot Admins", "\n".join(mentions)))
+        await ctx.send("\n".join(mentions))
 
     @commands.hybrid_group(name="botmod", description="Manage bot moderators")
     async def botmod(self, ctx: commands.Context):
@@ -77,11 +76,11 @@ class AdminStaff(commands.Cog):
         current = await self.bot.db.kv_get("bot_mods", "list")
         mods = set(map(int, current.split(","))) if current else set()
         if member.id in mods:
-            await ctx.send(embed=embeds.error("Error", "This user is already a bot moderator!"))
+            await ctx.send("This user is already a bot moderator!")
             return
         mods.add(member.id)
         await self.bot.db.kv_set("bot_mods", "list", ",".join(map(str, mods)))
-        await ctx.send(embed=embeds.success("Bot Moderator Added", f"Added {member.mention} as bot moderator!"))
+        await ctx.send(f"Added {member.mention} as bot moderator!")
 
     @botmod.command(name="remove", description="Remove a bot moderator")
     @app_commands.describe(member="Member to remove as bot moderator")
@@ -89,18 +88,18 @@ class AdminStaff(commands.Cog):
         current = await self.bot.db.kv_get("bot_mods", "list")
         mods = set(map(int, current.split(","))) if current else set()
         if member.id not in mods:
-            await ctx.send(embed=embeds.error("Error", "This user is not a bot moderator!"))
+            await ctx.send("This user is not a bot moderator!")
             return
         mods.remove(member.id)
         await self.bot.db.kv_set("bot_mods", "list", ",".join(map(str, mods)))
-        await ctx.send(embed=embeds.success("Bot Moderator Removed", f"Removed {member.mention} as bot moderator!"))
+        await ctx.send(f"Removed {member.mention} as bot moderator!")
 
     @botmod.command(name="list", description="List all bot moderators")
     async def list_bot_mods(self, ctx: commands.Context):
         current = await self.bot.db.kv_get("bot_mods", "list")
         mods = list(map(int, current.split(","))) if current else []
         if not mods:
-            await ctx.send(embed=embeds.info("Bot Moderators", "No bot moderators configured!"))
+            await ctx.send("No bot moderators configured!")
             return
         mentions = []
         for uid in mods:
@@ -109,7 +108,7 @@ class AdminStaff(commands.Cog):
                 mentions.append(user.mention)
             else:
                 mentions.append(f"Unknown User ({uid})")
-        await ctx.send(embed=embeds.info("Bot Moderators", "\n".join(mentions)))
+        await ctx.send("\n".join(mentions))
 
 
 async def setup(bot: commands.Bot):

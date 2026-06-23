@@ -6,7 +6,6 @@ import subprocess
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
 from utils.checks import is_owner
 
 
@@ -31,16 +30,16 @@ class AdminMisc(commands.Cog):
             synced = await self.bot.tree.sync(guild=ctx.guild)
         else:
             synced = await self.bot.tree.sync()
-        await ctx.send(embed=embeds.success("Synced", f"{len(synced)} command(s) ({scope})."))
+        await ctx.send(f"Synced: {len(synced)} command(s) ({scope}).")
 
     @commands.command(name="shutdown")
     async def shutdown(self, ctx: commands.Context):
-        await ctx.send(embed=embeds.warning("Shutting Down", "Goodbye 👋"))
+        await ctx.send("Shutting down... Goodbye!")
         await self.bot.close()
 
     @commands.command(name="restart")
     async def restart(self, ctx: commands.Context):
-        await ctx.send(embed=embeds.warning("Restarting", "Be right back! 🔄"))
+        await ctx.send("Restarting... Be right back!")
         await self.bot.close()
         # Respawn the bot
         os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -102,7 +101,7 @@ class AdminMisc(commands.Cog):
             "dnd": "Do Not Disturb"
         }.get(status, "Online")
         
-        await ctx.send(embed=embeds.success("Status Updated", f"New status: {status_text} - {activity_text} **{text}**"))
+        await ctx.send(f"Status updated: {status_text} - {activity_text} {text}")
 
 
 async def setup(bot: commands.Bot):
