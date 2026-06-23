@@ -728,6 +728,21 @@ STRICT RULES:
         self.user_memory[ctx.author.id].clear()
         await ctx.send("✅ Your personal memory has been cleared!")
 
+    @commands.hybrid_command(name="view_memory", description="View your personal chat memory with the bot!")
+    async def view_memory(self, ctx: commands.Context):
+        memory = list(self.user_memory[ctx.author.id])
+        if not memory:
+            await ctx.send("📭 No memories yet!")
+            return
+        
+        lines = ["📜 Your Personal Chat Memory:"]
+        for i, msg in enumerate(memory, 1):
+            role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
+            content = msg["content"][:100] + "..." if len(msg["content"]) > 100 else msg["content"]
+            lines.append(f"{i}. {role}: {content}")
+        
+        await ctx.send("\n".join(lines))
+
     @commands.hybrid_command(name="wouldyourather", description="Get a 'Would You Rather' question!")
     async def wouldyourather(self, ctx: commands.Context):
         await ctx.defer()
