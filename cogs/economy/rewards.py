@@ -6,8 +6,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
-
 DAILY_AMOUNT = 100
 DAILY_COOLDOWN = timedelta(hours=24)
 WORK_COOLDOWN = timedelta(hours=1)
@@ -35,11 +33,11 @@ class EconomyRewards(commands.Cog):
             if remaining.total_seconds() > 0:
                 hours, rem = divmod(int(remaining.total_seconds()), 3600)
                 minutes = rem // 60
-                await ctx.send(embed=embeds.warning("Already Claimed", f"Come back in {hours}h {minutes}m."))
+                await ctx.send(f"Already Claimed: Come back in {hours}h {minutes}m.")
                 return
         await self.bot.db.add_balance(ctx.guild.id, ctx.author.id, DAILY_AMOUNT)
         await self.bot.db.set_last_daily(ctx.guild.id, ctx.author.id, now.isoformat())
-        await ctx.send(embed=embeds.success("Daily Claimed", f"You received {DAILY_AMOUNT} coins! 💰"))
+        await ctx.send(f"✅ Daily Claimed! You received {DAILY_AMOUNT} coins! 💰")
 
     @commands.hybrid_command(name="work", description="Work to earn some coins!")
     async def work(self, ctx: commands.Context):
@@ -49,13 +47,13 @@ class EconomyRewards(commands.Cog):
             remaining = WORK_COOLDOWN - (now - datetime.fromisoformat(last))
             if remaining.total_seconds() > 0:
                 minutes, seconds = divmod(int(remaining.total_seconds()), 60)
-                await ctx.send(embed=embeds.warning("Not Yet", f"Come back in {minutes}m {seconds}s."))
+                await ctx.send(f"Not Yet: Come back in {minutes}m {seconds}s.")
                 return
         amount = random.randint(50, 150)
         await self.bot.db.add_balance(ctx.guild.id, ctx.author.id, amount)
         await self.bot.db.set_last_work(ctx.guild.id, ctx.author.id, now.isoformat())
         message = random.choice(WORK_MESSAGES)
-        await ctx.send(embed=embeds.success("Work Complete", f"{message} {amount} coins! 💰"))
+        await ctx.send(f"✅ Work Complete! {message} {amount} coins! 💰")
 
 
 async def setup(bot: commands.Bot):

@@ -6,7 +6,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
 from utils.helpers import xp_for_level
 
 
@@ -48,12 +47,11 @@ class LevelingCore(commands.Cog):
                         await self.bot.db.add_balance(message.guild.id, message.author.id, reward['coins'])
                         reward_str.append(f"{reward['coins']} coins")
                 
-                embed_desc = f"{message.author.mention} is now **Level {new_level}**!"
+                msg = [f"{message.author.mention} is now Level {new_level}! 🎉"]
                 if reward_str:
-                    embed_desc += f"\n🎁 Rewards: {' and '.join(reward_str)}!"
+                    msg.append(f"🎁 Rewards: {' and '.join(reward_str)}!")
                 
-                embed = embeds.success("Level Up! 🎉", embed_desc)
-                await message.channel.send(embed=embed)
+                await message.channel.send("\n".join(msg))
 
     @commands.hybrid_command(name="level", description="Check your or someone else's level and XP.")
     @app_commands.describe(member="Member to check (defaults to you)")
@@ -63,31 +61,30 @@ class LevelingCore(commands.Cog):
         level = data["level"]
         current_xp = data["xp"]
         needed_xp = xp_for_level(level)
-        embed = embeds.info(f"{member.display_name}'s Level", "")
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(name="Level", value=f"🎉 {level}")
-        embed.add_field(name="XP", value=f"{current_xp}/{needed_xp}")
         # Progress bar
         bar_length = 15
         progress = int((current_xp / needed_xp) * bar_length)
         bar = "█" * progress + "░" * (bar_length - progress)
-        embed.add_field(name="Progress", value=f"[{bar}] {int((current_xp/needed_xp)*100)}%", inline=False)
-        await ctx.send(embed=embed)
+        msg = [
+            f"📊 {member.display_name}'s Level",
+            f"Level: 🎉 {level}",
+            f"XP: {current_xp}/{needed_xp}",
+            f"Progress: [{bar}] {int((current_xp/needed_xp)*100)}%"
+        ]
+        await ctx.send("\n".join(msg))
 
     @commands.hybrid_command(name="leaderboard", description="Show the server's level leaderboard.")
     async def leaderboard(self, ctx: commands.Context):
         data = await self.bot.db.get_level_leaderboard(ctx.guild.id)
-        embed = embeds.info("🏆 Level Leaderboard", "")
+        msg = ["🏆 Level Leaderboard"]
         if not data:
-            embed.description = "No one has any XP yet!"
+            msg.append("No one has any XP yet!")
         else:
-            lines = []
             for i, entry in enumerate(data, 1):
                 member = ctx.guild.get_member(entry["user_id"])
                 name = member.display_name if member else f"Unknown User ({entry['user_id']})"
-                lines.append(f"**#{i}** {name} - Level {entry['level']} ({entry['xp']} XP)")
-            embed.description = "\n".join(lines)
-        await ctx.send(embed=embed)
+                msg.append(f"#{i} {name} - Level {entry['level']} ({entry['xp']} XP)")
+        await ctx.send("\n".join(msg))
 
 
 async def setup(bot: commands.Bot):
