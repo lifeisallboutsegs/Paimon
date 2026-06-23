@@ -7,7 +7,9 @@ from utils import embeds
 from utils.checks import is_owner_or_admin
 
 
-class Settings(commands.Cog):
+class SettingsCore(commands.Cog):
+    """Server settings commands"""
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
@@ -60,4 +62,4 @@ class Settings(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Settings(bot))
+    await bot.add_cog(SettingsCore(bot))

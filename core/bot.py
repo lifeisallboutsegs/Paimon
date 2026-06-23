@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -34,6 +33,7 @@ class Bot(commands.Bot):
             help_command=commands.DefaultHelpCommand(no_category="Commands"),
         )
         self.db = db
+        self.start_time = discord.utils.utcnow()
 
     async def setup_hook(self) -> None:
         await self._load_cogs()
@@ -43,10 +43,13 @@ class Bot(commands.Bot):
 
     async def _load_cogs(self) -> None:
         cogs_dir = Path(__file__).resolve().parent.parent / "cogs"
-        for path in sorted(cogs_dir.glob("*.py")):
+        for path in sorted(cogs_dir.rglob("*.py")):
             if path.stem.startswith("_"):
                 continue
-            extension = f"cogs.{path.stem}"
+            # Calculate the relative path from cogs_dir
+            rel_path = path.relative_to(cogs_dir)
+            # Convert path to extension name (e.g., moderation/punishments.py -> moderation.punishments)
+            extension = "cogs." + ".".join(rel_path.with_suffix("").parts)
             try:
                 await self.load_extension(extension)
                 logger.info("Loaded cog: %s", extension)

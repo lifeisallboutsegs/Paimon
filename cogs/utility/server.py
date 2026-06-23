@@ -1,6 +1,4 @@
 
-import time
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -8,18 +6,11 @@ from discord.ext import commands
 from utils import embeds
 
 
-class Utility(commands.Cog):
+class UtilityServer(commands.Cog):
+    """Server and user info commands"""
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-
-    @commands.hybrid_command(name="ping", description="Check the bot's latency.")
-    async def ping(self, ctx: commands.Context):
-        start = time.perf_counter()
-        message = await ctx.send("Pinging...")
-        elapsed = (time.perf_counter() - start) * 1000
-        await message.edit(content=None, embed=embeds.info(
-            "Pong! 🏓", f"Gateway: `{self.bot.latency * 1000:.1f}ms`\nRoundtrip: `{elapsed:.1f}ms`"
-        ))
 
     @commands.hybrid_command(name="userinfo", description="Show information about a member.")
     @app_commands.describe(member="Member to inspect (defaults to you)")
@@ -57,4 +48,4 @@ class Utility(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Utility(bot))
+    await bot.add_cog(UtilityServer(bot))

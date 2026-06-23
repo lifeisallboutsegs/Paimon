@@ -13,6 +13,16 @@ class Config:
     OWNER_IDS: set[int] = {
         int(uid) for uid in os.getenv("OWNER_IDS", "").split(",") if uid.strip().isdigit()
     }
+    BOT_ADMIN_IDS: set[int] = {
+        int(uid) for uid in os.getenv("BOT_ADMIN_IDS", "").split(",") if uid.strip().isdigit()
+    }
+    BOT_MODERATOR_IDS: set[int] = {
+        int(uid) for uid in os.getenv("BOT_MODERATOR_IDS", "").split(",") if uid.strip().isdigit()
+    }
+    GROQ_API_KEYS: list[str] = [
+        key.strip() for key in os.getenv("GROQ_API_KEYS", "").split(",") if key.strip()
+    ]
+    OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "")
 
     # "sqlite" or "json" -- see core/database.py and core/json_store.py.
     # Both implement the exact same async interface, so cogs never need
