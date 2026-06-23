@@ -32,7 +32,7 @@ class CogFileHandler(FileSystemEventHandler):
         # Debounce: don't reload too often (use time.time() since we're in a thread)
         now = time.time()
         if path in self.last_reload:
-            if (now - self.last_reload[path]) < 1.0:
+            if (now - self.last_reload[path]) < 2.0:
                 return
         
         self.last_reload[path] = now

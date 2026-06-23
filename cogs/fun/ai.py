@@ -14,6 +14,7 @@ from config import Config
 
 
 class FunAI(commands.Cog):
+    _pending_replies = set()
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.key_index = 0
@@ -29,7 +30,6 @@ class FunAI(commands.Cog):
         self.active_channels = defaultdict(set)
         self.user_interaction_count = defaultdict(lambda: defaultdict(int))
         self.http_session = None
-        self._pending_replies = set()
 
         self.tools = [
             {
@@ -437,10 +437,10 @@ class FunAI(commands.Cog):
         if not self._should_reply(message, bot_mentioned):
             return
 
-        dedup_key = (guild_id, message.id)
-        if dedup_key in self._pending_replies:
+        dedup_key = message.id
+        if dedup_key in FunAI._pending_replies:
             return
-        self._pending_replies.add(dedup_key)
+        FunAI._pending_replies.add(dedup_key)
 
         async def handle_reply():
             try:
@@ -546,13 +546,13 @@ STRICT RULES:
                     except Exception as e:
                         print(f"Send error: {e}")
                     finally:
-                        self._pending_replies.discard(dedup_key)
+                        FunAI._pending_replies.discard(dedup_key)
 
                 self.bot.loop.create_task(send_it())
 
             except Exception as e:
                 print(f"on_message handler error: {e}")
-                self._pending_replies.discard(dedup_key)
+                FunAI._pending_replies.discard(dedup_key)
 
         self.bot.loop.create_task(handle_reply())
 
