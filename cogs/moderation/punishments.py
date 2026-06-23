@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds, helpers
+from utils import helpers
 from utils.checks import mod_role_or_permission
 
 
@@ -21,7 +21,7 @@ class ModerationPunishments(commands.Cog):
     @commands.bot_has_permissions(kick_members=True)
     async def kick(self, ctx: commands.Context, member: discord.Member, *, reason: str = "No reason provided"):
         await member.kick(reason=f"{ctx.author}: {reason}")
-        await ctx.send(embed=embeds.success("Member Kicked", f"{member.mention} — {reason}"))
+        await ctx.send(f"✅ Member Kicked: {member.mention} — {reason}")
 
     @commands.hybrid_command(name="ban", description="Ban a member from the server.")
     @app_commands.describe(member="Member to ban", reason="Reason for the ban")
@@ -29,7 +29,7 @@ class ModerationPunishments(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     async def ban(self, ctx: commands.Context, member: discord.Member, *, reason: str = "No reason provided"):
         await member.ban(reason=f"{ctx.author}: {reason}", delete_message_seconds=0)
-        await ctx.send(embed=embeds.success("Member Banned", f"{member.mention} — {reason}"))
+        await ctx.send(f"✅ Member Banned: {member.mention} — {reason}")
 
     @commands.hybrid_command(name="unban", description="Unban a user from the server.")
     @app_commands.describe(user="User to unban (username#discriminator or ID)")
@@ -40,8 +40,8 @@ class ModerationPunishments(commands.Cog):
         for ban_entry in bans:
             if str(ban_entry.user) == user or str(ban_entry.user.id) == user:
                 await ctx.guild.unban(ban_entry.user)
-                return await ctx.send(embed=embeds.success("User Unbanned", f"{ban_entry.user.mention}"))
-        await ctx.send(embed=embeds.error("Error", "User not found in ban list."))
+                return await ctx.send(f"✅ User Unbanned: {ban_entry.user.mention}")
+        await ctx.send(f"❌ Error: User not found in ban list.")
 
     @commands.hybrid_command(name="timeout", description="Timeout a member.")
     @app_commands.describe(member="Member to timeout", duration="e.g. 10m, 1h, 1d", reason="Reason")
@@ -53,12 +53,10 @@ class ModerationPunishments(commands.Cog):
     ):
         seconds = helpers.parse_duration(duration)
         if seconds is None:
-            await ctx.send(embed=embeds.error("Invalid Duration", "Use a format like `10m`, `1h`, `2d`."))
+            await ctx.send(f"❌ Invalid Duration: Use a format like `10m`, `1h`, `2d`.")
             return
         await member.timeout(timedelta(seconds=seconds), reason=f"{ctx.author}: {reason}")
-        await ctx.send(embed=embeds.success(
-            "Member Timed Out", f"{member.mention} for {helpers.human_timedelta_seconds(seconds)} — {reason}"
-        ))
+        await ctx.send(f"✅ Member Timed Out: {member.mention} for {helpers.human_timedelta_seconds(seconds)} — {reason}")
 
     @commands.hybrid_command(name="mute", description="Mute a member using the Muted role.")
     @app_commands.describe(member="Member to mute", reason="Reason for the mute")
@@ -71,7 +69,7 @@ class ModerationPunishments(commands.Cog):
             for channel in ctx.guild.channels:
                 await channel.set_permissions(mute_role, send_messages=False, speak=False)
         await member.add_roles(mute_role, reason=f"{ctx.author}: {reason}")
-        await ctx.send(embed=embeds.success("Member Muted", f"{member.mention} — {reason}"))
+        await ctx.send(f"✅ Member Muted: {member.mention} — {reason}")
 
     @commands.hybrid_command(name="unmute", description="Unmute a member.")
     @app_commands.describe(member="Member to unmute")
@@ -81,9 +79,9 @@ class ModerationPunishments(commands.Cog):
         mute_role = discord.utils.get(ctx.guild.roles, name="Muted")
         if mute_role in member.roles:
             await member.remove_roles(mute_role)
-            await ctx.send(embed=embeds.success("Member Unmuted", f"{member.mention}"))
+            await ctx.send(f"✅ Member Unmuted: {member.mention}")
         else:
-            await ctx.send(embed=embeds.error("Error", "This user is not muted."))
+            await ctx.send(f"❌ Error: This user is not muted.")
 
 
 async def setup(bot: commands.Bot):
