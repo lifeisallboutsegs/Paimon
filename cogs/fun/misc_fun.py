@@ -5,8 +5,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
-
 
 class FunMisc(commands.Cog):
     """Miscellaneous fun commands!"""
@@ -26,24 +24,24 @@ class FunMisc(commands.Cog):
             "Why did the bicycle fall over? Because it was two-tired!",
             "What do you call a fish without eyes? A fsh!",
         ]
-        await ctx.send(embed=embeds.info("Joke", random.choice(jokes)))
+        await ctx.send(f"ℹ️ Joke\n{random.choice(jokes)}")
 
     @commands.hybrid_command(name="random_num", description="Get a random number!")
     @app_commands.describe(min_num="Minimum number", max_num="Maximum number")
     async def random_number(self, ctx: commands.Context, min_num: int = 1, max_num: int = 100):
         if min_num > max_num:
-            await ctx.send(embed=embeds.error("Error", "Minimum number can't be bigger than maximum!"))
+            await ctx.send("❌ Error\nMinimum number can't be bigger than maximum!")
             return
-        await ctx.send(embed=embeds.info("Random Number", f"Your random number: {random.randint(min_num, max_num)}"))
+        await ctx.send(f"ℹ️ Random Number\nYour random number: {random.randint(min_num, max_num)}")
 
     @commands.hybrid_command(name="choose", description="Let the bot choose for you!")
     @app_commands.describe(options="Options separated by spaces")
     async def choose(self, ctx: commands.Context, *, options: str):
         option_list = options.split()
         if len(option_list) < 2:
-            await ctx.send(embed=embeds.error("Error", "Please give at least 2 options!"))
+            await ctx.send("❌ Error\nPlease give at least 2 options!")
             return
-        await ctx.send(embed=embeds.info("I choose...", f"**{random.choice(option_list)}**!"))
+        await ctx.send(f"ℹ️ I choose...\n**{random.choice(option_list)}**!")
 
 
 async def setup(bot: commands.Bot):

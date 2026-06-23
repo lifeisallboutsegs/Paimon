@@ -254,6 +254,7 @@ class FunAI(commands.Cog):
         ]
         
         urls_to_send = []
+        seen_urls = set()
         
         try:
             # First call with tools
@@ -292,7 +293,10 @@ class FunAI(commands.Cog):
                             try:
                                 tool_data = json.loads(tool_response)
                                 if "url" in tool_data:
-                                    urls_to_send.append(tool_data["url"])
+                                    url = tool_data["url"]
+                                    if url not in seen_urls:
+                                        urls_to_send.append(url)
+                                        seen_urls.add(url)
                             except:
                                 pass
                             
@@ -337,20 +341,37 @@ class FunAI(commands.Cog):
         if message.author.bot or not message.guild or len(message.content) < 3:
             return
         
-        # Check if it's a command
+        # Check if it's a command using bot's built-in prefixes
         is_command = False
         try:
-            guild_cfg = await self.bot.db.get_guild_config(message.guild.id)
-            prefix = guild_cfg.get("prefix") or Config.PREFIX
-            if message.content.startswith(prefix):
-                is_command = True
+            prefixes = await self.bot.get_prefix(message)
+            for prefix in prefixes:
+                if message.content.startswith(prefix):
+                    # Check if it's actually a command (not just a mention)
+                    # For mention prefixes: check if there's content after the prefix
+                    is_mention_prefix = (str(self.bot.user.id) in prefix)
+                    if is_mention_prefix:
+                        # If it's a mention prefix, check if there's more content (a command name)
+                        after_prefix = message.content[len(prefix):].strip()
+                        if len(after_prefix) == 0:
+                            # Just a mention, no command - not a command
+                            continue
+                        # Check if the next word is a valid command
+                        cmd_name = after_prefix.split()[0] if ' ' in after_prefix else after_prefix
+                        if self.bot.get_command(cmd_name) is not None:
+                            is_command = True
+                            break
+                    else:
+                        # For normal prefixes, it's a command
+                        is_command = True
+                        break
         except:
             pass
         
         if is_command:
             return
         
-        # Check if bot is mentioned
+        # Check if bot is mentioned (non-command mention
         bot_mentioned = self.bot.user.mentioned_in(message)
         
         # Store context with author IDs
@@ -367,8 +388,8 @@ class FunAI(commands.Cog):
         # Check cooldown or message count
         current_time = message.created_at.timestamp()
         if not bot_mentioned and (
-            (current_time - self.last_reply[message.guild.id] < 300) or
-            (self.message_since_last_reply[message.guild.id] < 20)
+            (current_time - self.last_reply[message.guild.id] < 30) or  # 30 second cooldown
+            (self.message_since_last_reply[message.guild.id] < 5)
         ):
             return
         
