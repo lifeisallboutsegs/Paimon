@@ -28,11 +28,24 @@ class ModerationMisc(commands.Cog):
     @mod_role_or_permission("manage_nicknames")
     @commands.bot_has_permissions(manage_nicknames=True)
     async def nick(self, ctx: commands.Context, member: discord.Member, *, nickname: str = None):
-        await member.edit(nick=nickname)
-        if nickname:
-            await ctx.send(f"✅ Nickname Changed: Changed {member.mention}'s nickname to {nickname}!")
-        else:
-            await ctx.send(f"✅ Nickname Removed: Removed {member.mention}'s nickname!")
+        # Check if bot's role is high enough
+        if member.top_role >= ctx.guild.me.top_role:
+            await ctx.send(f"❌ Error: I can't change {member.mention}'s nickname because their role is higher than or equal to mine!")
+            return
+        # Check if trying to modify server owner
+        if member.id == ctx.guild.owner_id and ctx.guild.me.id != ctx.guild.owner_id:
+            await ctx.send(f"❌ Error: I can't change the server owner's nickname!")
+            return
+        try:
+            await member.edit(nick=nickname)
+            if nickname:
+                await ctx.send(f"✅ Nickname Changed: Changed {member.mention}'s nickname to {nickname}!")
+            else:
+                await ctx.send(f"✅ Nickname Removed: Removed {member.mention}'s nickname!")
+        except discord.Forbidden:
+            await ctx.send(f"❌ Error: I don't have permission to change {member.mention}'s nickname!")
+        except discord.HTTPException as e:
+            await ctx.send(f"❌ Error: Failed to change nickname - {e}")
 
 
 async def setup(bot: commands.Bot):
