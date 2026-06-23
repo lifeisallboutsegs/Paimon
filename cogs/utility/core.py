@@ -24,10 +24,6 @@ class UtilityCore(commands.Cog):
             "Pong! 🏓", f"Gateway: `{self.bot.latency * 1000:.1f}ms`\nRoundtrip: `{elapsed:.1f}ms`"
         ))
 
-    @commands.hybrid_command(name="help", description="Shows all available commands.")
-    async def help_command(self, ctx: commands.Context):
-        await ctx.send_help()
-
     @commands.hybrid_command(name="info", description="Shows information about the bot.")
     async def info(self, ctx: commands.Context):
         embed = embeds.info("🤖 Bot Info", "")

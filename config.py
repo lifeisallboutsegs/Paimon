@@ -19,9 +19,15 @@ class Config:
     BOT_MODERATOR_IDS: set[int] = {
         int(uid) for uid in os.getenv("BOT_MODERATOR_IDS", "").split(",") if uid.strip().isdigit()
     }
-    GROQ_API_KEYS: list[str] = [
-        key.strip() for key in os.getenv("GROQ_API_KEYS", "").split(",") if key.strip()
-    ]
+    # Accept both GROQ_API_KEY (single key) and GROQ_API_KEYS (comma-separated)
+    GROQ_API_KEYS: list[str] = []
+    single_key = os.getenv("GROQ_API_KEY", "").strip()
+    if single_key:
+        GROQ_API_KEYS.append(single_key)
+    for key in os.getenv("GROQ_API_KEYS", "").split(","):
+        stripped = key.strip()
+        if stripped and stripped not in GROQ_API_KEYS:
+            GROQ_API_KEYS.append(stripped)
     OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "")
 
     # "sqlite" or "json" -- see core/database.py and core/json_store.py.
