@@ -4,8 +4,6 @@ import logging
 import discord
 from discord.ext import commands
 
-from utils import embeds
-
 logger = logging.getLogger("bot.errors")
 
 
@@ -20,32 +18,32 @@ class Errors(commands.Cog):
 
         if isinstance(error, commands.MissingPermissions):
             perms = ", ".join(error.missing_permissions)
-            await ctx.send(embed=embeds.error("Missing Permissions", f"You need: `{perms}`"))
+            await ctx.send(f"❌ Missing Permissions: You need: `{perms}`")
             return
 
         if isinstance(error, commands.BotMissingPermissions):
             perms = ", ".join(error.missing_permissions)
-            await ctx.send(embed=embeds.error("I'm Missing Permissions", f"I need: `{perms}`"))
+            await ctx.send(f"❌ I'm Missing Permissions: I need: `{perms}`")
             return
 
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(embed=embeds.error("Missing Argument", f"`{error.param.name}` is required."))
+            await ctx.send(f"❌ Missing Argument: `{error.param.name}` is required.")
             return
 
         if isinstance(error, commands.BadArgument):
-            await ctx.send(embed=embeds.error("Invalid Argument", str(error)))
+            await ctx.send(f"❌ Invalid Argument: {str(error)}")
             return
 
         if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(embed=embeds.warning("Cooldown", f"Try again in {error.retry_after:.1f}s."))
+            await ctx.send(f"⚠️ Cooldown: Try again in {error.retry_after:.1f}s.")
             return
 
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.send(embed=embeds.error("Server Only", "This command can't be used in DMs."))
+            await ctx.send(f"❌ Server Only: This command can't be used in DMs.")
             return
 
         logger.exception("Unhandled command error in %s", ctx.command, exc_info=error)
-        await ctx.send(embed=embeds.error("Unexpected Error", "Something went wrong and has been logged."))
+        await ctx.send(f"❌ Unexpected Error: Something went wrong and has been logged.")
 
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error):

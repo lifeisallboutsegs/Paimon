@@ -3,7 +3,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils import embeds
 from utils.checks import mod_role_or_permission
 
 
@@ -20,9 +19,9 @@ class ModerationMisc(commands.Cog):
     async def slowmode(self, ctx: commands.Context, seconds: int):
         await ctx.channel.edit(slowmode_delay=seconds)
         if seconds == 0:
-            await ctx.send(embed=embeds.success("Slowmode Disabled", "Slowmode has been turned off!"))
+            await ctx.send("✅ Slowmode Disabled: Slowmode has been turned off!")
         else:
-            await ctx.send(embed=embeds.success("Slowmode Set", f"Slowmode set to {seconds} seconds!"))
+            await ctx.send(f"✅ Slowmode Set: Slowmode set to {seconds} seconds!")
 
     @commands.hybrid_command(name="nick", description="Change a member's nickname")
     @app_commands.describe(member="Member to change nickname for", nickname="New nickname (leave empty to remove)")
@@ -31,9 +30,9 @@ class ModerationMisc(commands.Cog):
     async def nick(self, ctx: commands.Context, member: discord.Member, *, nickname: str = None):
         await member.edit(nick=nickname)
         if nickname:
-            await ctx.send(embed=embeds.success("Nickname Changed", f"Changed {member.mention}'s nickname to {nickname}!"))
+            await ctx.send(f"✅ Nickname Changed: Changed {member.mention}'s nickname to {nickname}!")
         else:
-            await ctx.send(embed=embeds.success("Nickname Removed", f"Removed {member.mention}'s nickname!"))
+            await ctx.send(f"✅ Nickname Removed: Removed {member.mention}'s nickname!")
 
 
 async def setup(bot: commands.Bot):
