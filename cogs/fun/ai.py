@@ -25,12 +25,14 @@ class FunAI(commands.Cog):
         else:
             print("Warning: GROQ_API_KEYS not set - AI commands won't work!")
         self.context_store = defaultdict(lambda: deque(maxlen=60))  # guild-wide chat
-        self.user_memory = defaultdict(lambda: deque(maxlen=30))  # per-user memory
+        self.user_memory_recent = defaultdict(lambda: deque(maxlen=10))  # last 10 raw messages
+        self.user_memory_summary = defaultdict(str)  # summary of older messages
         self.last_reply = defaultdict(float)
         self.message_since_last_reply = defaultdict(int)
         self.active_channels = defaultdict(set)
         self.user_interaction_count = defaultdict(lambda: defaultdict(int))
         self.http_session = None
+        self._pending_summarize = set()  # track users that need summarization after reply
 
         self.tools = [
             {
@@ -338,15 +340,20 @@ class FunAI(commands.Cog):
                 return None, []
             return "Oops! Something went wrong on my end. Try again later!", []
 
-    def _is_command(self, message: discord.Message) -> bool:
-        if not hasattr(self.bot, "_prefix_cache"):
-            pass
+    async def _is_command(self, message: discord.Message) -> bool:
         prefixes = []
         try:
             prefix = self.bot.command_prefix
             if callable(prefix):
-                return False
-            if isinstance(prefix, (list, tuple)):
+                # Get actual prefixes by calling (and awaiting if async) the prefix function
+                result = prefix(self.bot, message)
+                if hasattr(result, '__await__'):  # check if it's a coroutine
+                    result = await result
+                if isinstance(result, (list, tuple)):
+                    prefixes = list(result)
+                else:
+                    prefixes = [result]
+            elif isinstance(prefix, (list, tuple)):
                 prefixes = list(prefix)
             else:
                 prefixes = [prefix]
@@ -354,11 +361,50 @@ class FunAI(commands.Cog):
             return False
 
         for p in prefixes:
-            if message.content.startswith(p):
-                rest = message.content[len(p):].strip()
-                if rest:
-                    return True
+            if isinstance(p, str):
+                # Skip mention prefixes (like <@!123>, <@123>) - we want to respond to mentions!
+                if p.startswith('<@'):
+                    continue
+                if message.content.startswith(p):
+                    rest = message.content[len(p):].strip()
+                    if rest:
+                        return True
         return False
+
+    async def _summarize_memory(self, user_id: int, new_messages: list):
+        """Summarize user's chat history to keep memory optimized!"""
+        if not new_messages:
+            return
+        
+        existing_summary = self.user_memory_summary[user_id]
+        
+        # Build a prompt for summarization
+        system_prompt = "You are a memory summarizer. You will be given an existing summary of a conversation and new messages. Create a concise, updated summary of the entire conversation. Keep it under 500 characters. Focus on key details, facts, and preferences mentioned. DO NOT include extra fluff or formatting."
+        
+        user_prompt_parts = []
+        if existing_summary:
+            user_prompt_parts.append(f"Existing summary: {existing_summary}")
+        user_prompt_parts.append("\nNew messages to add to the summary:")
+        for msg in new_messages:
+            role = "Bot" if msg["role"] == "assistant" else "User"
+            user_prompt_parts.append(f"- {role}: {msg['content']}")
+        
+        user_prompt = "\n".join(user_prompt_parts)
+        
+        # Generate summary
+        summary, _ = await self._generate_response(
+            system_prompt, 
+            user_prompt, 
+            use_tools=False, 
+            fail_silent=False,
+            max_tokens=200
+        )
+        
+        # Update summary
+        self.user_memory_summary[user_id] = summary
+        
+        # Clear the messages we just summarized
+        new_messages.clear()
 
     def _should_reply(self, message: discord.Message, bot_mentioned: bool) -> bool:
         guild_id = message.guild.id
@@ -385,12 +431,17 @@ class FunAI(commands.Cog):
         lines = []
         
         # Add per-user memory if available
-        if user_id and self.user_memory[user_id]:
-            lines.append("--- YOUR PAST CONVERSATIONS WITH ME ---")
-            for msg in self.user_memory[user_id]:
-                prefix = "🤖" if msg["role"] == "assistant" else "👤"
-                lines.append(f"{prefix}: {msg['content']}")
-            lines.append("--- END OF PAST CONVERSATIONS ---\n")
+        if user_id:
+            if self.user_memory_summary[user_id]:
+                lines.append("--- YOUR PAST CONVERSATIONS SUMMARY ---")
+                lines.append(self.user_memory_summary[user_id])
+                lines.append("--- END OF SUMMARY ---\n")
+            if self.user_memory_recent[user_id]:
+                lines.append("--- RECENT MESSAGES WITH YOU ---")
+                for msg in self.user_memory_recent[user_id]:
+                    prefix = "🤖" if msg["role"] == "assistant" else "👤"
+                    lines.append(f"{prefix}: {msg['content']}")
+                lines.append("--- END OF RECENT MESSAGES ---\n")
         
         # Add guild-wide chat
         guild_context = list(self.context_store[guild_id])
@@ -433,7 +484,8 @@ class FunAI(commands.Cog):
         guild_id = message.guild.id
         bot_mentioned = self.bot.user in message.mentions  # Only explicit @mentions
 
-        if self._is_command(message):
+        is_command = await self._is_command(message)
+        if is_command:
             return
 
         # Save to guild-wide context
@@ -443,13 +495,17 @@ class FunAI(commands.Cog):
             "content": message.content,
             "is_bot": False
         })
-        # Save to user's personal memory
-        self.user_memory[message.author.id].append({
+        # Save to user's personal recent memory
+        self.user_memory_recent[message.author.id].append({
             "role": "user",
             "content": message.content
         })
         self.message_since_last_reply[guild_id] += 1
         self.user_interaction_count[guild_id][message.author.id] += 1
+        
+        # Check if we should summarize recent memory (delay until after reply)
+        if len(self.user_memory_recent[message.author.id]) >= 8:
+            self._pending_summarize.add(message.author.id)
 
         if not self.clients:
             return
@@ -562,8 +618,8 @@ STRICT RULES:
                             "content": reply_text,
                             "is_bot": True
                         })
-                        # Save bot's reply to user's memory
-                        self.user_memory[message.author.id].append({
+                        # Save bot's reply to user's recent memory
+                        self.user_memory_recent[message.author.id].append({
                             "role": "assistant",
                             "content": reply_text
                         })
@@ -576,12 +632,29 @@ STRICT RULES:
                         print(f"Send error: {e}")
                     finally:
                         FunAI._pending_replies.discard(dedup_key)
+                        # Now that we're done with reply, check if we need to summarize
+                        if message.author.id in self._pending_summarize:
+                            self._pending_summarize.remove(message.author.id)
+                            # Do the actual summarization
+                            if len(self.user_memory_recent[message.author.id]) >= 8:
+                                to_summarize = list(self.user_memory_recent[message.author.id])[:6]
+                                remaining = list(self.user_memory_recent[message.author.id])[6:]
+                                self.bot.loop.create_task(self._summarize_memory(message.author.id, to_summarize))
+                                self.user_memory_recent[message.author.id] = deque(remaining, maxlen=10)
 
                 self.bot.loop.create_task(send_it())
 
             except Exception as e:
                 print(f"on_message handler error: {e}")
                 FunAI._pending_replies.discard(dedup_key)
+                # Also check pending summarize here in case send_it didn't run
+                if message.author.id in self._pending_summarize:
+                    self._pending_summarize.remove(message.author.id)
+                    if len(self.user_memory_recent[message.author.id]) >= 8:
+                        to_summarize = list(self.user_memory_recent[message.author.id])[:6]
+                        remaining = list(self.user_memory_recent[message.author.id])[6:]
+                        self.bot.loop.create_task(self._summarize_memory(message.author.id, to_summarize))
+                        self.user_memory_recent[message.author.id] = deque(remaining, maxlen=10)
 
         self.bot.loop.create_task(handle_reply())
 
@@ -725,21 +798,28 @@ STRICT RULES:
 
     @commands.hybrid_command(name="clear_memory", description="Clear your personal chat memory with the bot!")
     async def clear_memory(self, ctx: commands.Context):
-        self.user_memory[ctx.author.id].clear()
+        self.user_memory_recent[ctx.author.id].clear()
+        self.user_memory_summary[ctx.author.id] = ""
         await ctx.send("✅ Your personal memory has been cleared!")
 
     @commands.hybrid_command(name="view_memory", description="View your personal chat memory with the bot!")
     async def view_memory(self, ctx: commands.Context):
-        memory = list(self.user_memory[ctx.author.id])
-        if not memory:
+        memory = list(self.user_memory_recent[ctx.author.id])
+        summary = self.user_memory_summary[ctx.author.id]
+        if not memory and not summary:
             await ctx.send("📭 No memories yet!")
             return
         
         lines = ["📜 Your Personal Chat Memory:"]
-        for i, msg in enumerate(memory, 1):
-            role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
-            content = msg["content"][:100] + "..." if len(msg["content"]) > 100 else msg["content"]
-            lines.append(f"{i}. {role}: {content}")
+        if summary:
+            lines.append("\n📝 Summary of older conversations:")
+            lines.append(summary)
+        if memory:
+            lines.append("\n🗨️ Recent messages:")
+            for i, msg in enumerate(memory, 1):
+                role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
+                content = msg["content"][:100] + "..." if len(msg["content"]) > 100 else msg["content"]
+                lines.append(f"{i}. {role}: {content}")
         
         await ctx.send("\n".join(lines))
 
