@@ -14,31 +14,44 @@ class UtilityHelp(commands.Cog):
     @commands.hybrid_command(name="help", description="Shows all available commands!")
     @app_commands.describe(category="Optional: Show commands for a specific category")
     async def help_command(self, ctx: commands.Context, category: str = None):
+        # Map cog name prefixes to categories
+        category_map = {
+            "admin": ["admin"],
+            "moderation": ["moderation"],
+            "economy": ["economy"],
+            "leveling": ["leveling"],
+            "fun": ["fun", "funai", "funimages", "fungames", "funmisc", "funsocial"],
+            "utility": ["utility"],
+            "settings": ["settings"]
+        }
+        
         # List of valid categories
         categories = {
-            "admin": "🛠️ Admin Commands (Bot Owner Only)",
-            "moderation": "🔨 Moderation Commands",
-            "economy": "💰 Economy Commands",
-            "leveling": "📈 Leveling Commands",
-            "fun": "🎉 Fun Commands",
-            "utility": "🔧 Utility Commands",
-            "settings": "⚙️ Settings Commands"
+            "admin": "Admin Commands (Bot Owner Only)",
+            "moderation": "Moderation Commands",
+            "economy": "Economy Commands",
+            "leveling": "Leveling Commands",
+            "fun": "Fun Commands",
+            "utility": "Utility Commands",
+            "settings": "Settings Commands"
         }
         
         if category and category.lower() not in categories:
             await ctx.send(embed=embeds.error("Oops!", f"Invalid category! Use one of: {', '.join(categories.keys())}"))
             return
         
-        embed = embeds.info("🤖 Bot Help", "")
+        embed = embeds.info("Bot Help", "")
         
         if category:
             cat = category.lower()
             embed.title = f"{categories[cat]} Help"
             commands_list = []
+            cog_prefixes = category_map[cat]
             for cmd in self.bot.walk_commands():
                 if cmd.cog_name:
-                    # Check if cog name matches category
-                    if cat in cmd.cog_name.lower():
+                    # Check if cog name starts with any of the prefixes for this category
+                    cog_name_lower = cmd.cog_name.lower()
+                    if any(prefix in cog_name_lower for prefix in cog_prefixes):
                         if cmd.name not in ["jishaku"]:  # Skip debug commands
                             desc = cmd.description or "No description"
                             commands_list.append(f"**{cmd.name}**: {desc}")
@@ -50,9 +63,11 @@ class UtilityHelp(commands.Cog):
             # Show all categories
             for cat, desc in categories.items():
                 commands_list = []
+                cog_prefixes = category_map[cat]
                 for cmd in self.bot.walk_commands():
                     if cmd.cog_name:
-                        if cat in cmd.cog_name.lower() and cmd.name not in ["jishaku"]:
+                        cog_name_lower = cmd.cog_name.lower()
+                        if any(prefix in cog_name_lower for prefix in cog_prefixes) and cmd.name not in ["jishaku"]:
                             commands_list.append(cmd.name)
                 if commands_list:
                     embed.add_field(name=desc, value=f"`{', '.join(commands_list)}`", inline=False)

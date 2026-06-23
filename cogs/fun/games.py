@@ -16,7 +16,7 @@ class FunGames(commands.Cog):
 
     @commands.hybrid_command(name="coinflip", description="Flip a coin.")
     async def coinflip(self, ctx: commands.Context):
-        await ctx.send(embed=embeds.info("🪙 Coin Flip", random.choice(["Heads!", "Tails!"])))
+        await ctx.send(embed=embeds.info("Coin Flip", random.choice(["Heads!", "Tails!"])))
 
     @commands.hybrid_command(name="8ball", description="Ask the magic 8-ball a question.")
     @app_commands.describe(question="What do you want to ask?")
@@ -25,7 +25,7 @@ class FunGames(commands.Cog):
             "Yes.", "No.", "Maybe.", "Definitely.", "Ask again later.",
             "Absolutely not.", "Without a doubt.", "I wouldn't count on it.",
         ]
-        await ctx.send(embed=embeds.info(f"🎱 {question}", random.choice(responses)))
+        await ctx.send(embed=embeds.info(question, random.choice(responses)))
 
     @commands.hybrid_command(name="roll", description="Roll dice, e.g. 2d6.")
     @app_commands.describe(dice="Format: NdM, e.g. 2d6")
@@ -37,7 +37,7 @@ class FunGames(commands.Cog):
             await ctx.send(embed=embeds.error("Invalid Format", "Use `NdM`, e.g. `2d6`."))
             return
         rolls = [random.randint(1, sides) for _ in range(count)]
-        await ctx.send(embed=embeds.info(f"🎲 Rolling {dice}", f"{rolls} = **{sum(rolls)}**"))
+        await ctx.send(embed=embeds.info(f"Rolling {dice}", f"{rolls} = **{sum(rolls)}**"))
 
     @commands.hybrid_command(name="rps", description="Play rock-paper-scissors!")
     @app_commands.describe(choice="Your choice (rock, paper, scissors)")
@@ -56,7 +56,7 @@ class FunGames(commands.Cog):
         else:
             result = "You lose!"
         await ctx.send(embed=embeds.info(
-            "✊✋✌️ Rock-Paper-Scissors",
+            "Rock-Paper-Scissors",
             f"You chose: **{choice}**\nBot chose: **{bot_choice}**\n\n{result}"
         ))
 

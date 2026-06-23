@@ -26,7 +26,7 @@ class FunMisc(commands.Cog):
             "Why did the bicycle fall over? Because it was two-tired!",
             "What do you call a fish without eyes? A fsh!",
         ]
-        await ctx.send(embed=embeds.info("😂 Joke", random.choice(jokes)))
+        await ctx.send(embed=embeds.info("Joke", random.choice(jokes)))
 
     @commands.hybrid_command(name="random_num", description="Get a random number!")
     @app_commands.describe(min_num="Minimum number", max_num="Maximum number")
@@ -34,7 +34,7 @@ class FunMisc(commands.Cog):
         if min_num > max_num:
             await ctx.send(embed=embeds.error("Error", "Minimum number can't be bigger than maximum!"))
             return
-        await ctx.send(embed=embeds.info("🎲 Random Number", f"Your random number: {random.randint(min_num, max_num)}"))
+        await ctx.send(embed=embeds.info("Random Number", f"Your random number: {random.randint(min_num, max_num)}"))
 
     @commands.hybrid_command(name="choose", description="Let the bot choose for you!")
     @app_commands.describe(options="Options separated by spaces")
@@ -43,7 +43,7 @@ class FunMisc(commands.Cog):
         if len(option_list) < 2:
             await ctx.send(embed=embeds.error("Error", "Please give at least 2 options!"))
             return
-        await ctx.send(embed=embeds.info("🤔 I choose...", f"**{random.choice(option_list)}**!"))
+        await ctx.send(embed=embeds.info("I choose...", f"**{random.choice(option_list)}**!"))
 
 
 async def setup(bot: commands.Bot):
