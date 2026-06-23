@@ -18,7 +18,7 @@ class CogFileHandler(FileSystemEventHandler):
     def __init__(self, bot: commands.Bot, loop: asyncio.AbstractEventLoop):
         self.bot = bot
         self.loop = loop
-        self.last_reload = {}
+        self.last_reload = {}  # path -> (last_time, last_mtime)
 
     def on_modified(self, event):
         """Handle file modified events!"""
@@ -31,11 +31,17 @@ class CogFileHandler(FileSystemEventHandler):
         
         # Debounce: don't reload too often (use time.time() since we're in a thread)
         now = time.time()
+        try:
+            current_mtime = path.stat().st_mtime
+        except:
+            current_mtime = now
+            
         if path in self.last_reload:
-            if (now - self.last_reload[path]) < 2.0:
+            last_time, last_mtime = self.last_reload[path]
+            if (now - last_time) < 5.0 or abs(current_mtime - last_mtime) < 0.1:
                 return
         
-        self.last_reload[path] = now
+        self.last_reload[path] = (now, current_mtime)
         
         # Get the extension name
         cogs_dir = Path(__file__).parent.parent / "cogs"

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import logging
+import json
+import time
+import os
 from pathlib import Path
 
 import discord
@@ -70,3 +73,21 @@ class Bot(commands.Bot):
         await self.change_presence(
             activity=discord.Activity(type=discord.ActivityType.watching, name="over the server")
         )
+        
+        # Check for restart info
+        if os.path.exists("restart_info.json"):
+            try:
+                with open("restart_info.json", "r") as f:
+                    restart_info = json.load(f)
+                channel_id = restart_info["channel_id"]
+                start_time = restart_info["start_time"]
+                time_taken = round(time.time() - start_time, 2)
+                
+                channel = self.get_channel(channel_id)
+                if channel:
+                    await channel.send(f"✅ Restarted! Took {time_taken} seconds.")
+                os.remove("restart_info.json")
+            except Exception as e:
+                logger.exception("Failed to send restart message: %s", e)
+                if os.path.exists("restart_info.json"):
+                    os.remove("restart_info.json")

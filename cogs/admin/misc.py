@@ -2,7 +2,8 @@
 import discord
 import os
 import sys
-import subprocess
+import json
+import time
 from discord import app_commands
 from discord.ext import commands
 
@@ -40,6 +41,13 @@ class AdminMisc(commands.Cog):
     @commands.command(name="restart")
     async def restart(self, ctx: commands.Context):
         await ctx.send("Restarting... Be right back!")
+        # Save restart info
+        restart_info = {
+            "channel_id": ctx.channel.id,
+            "start_time": time.time()
+        }
+        with open("restart_info.json", "w") as f:
+            json.dump(restart_info, f)
         await self.bot.close()
         # Respawn the bot
         os.execv(sys.executable, [sys.executable] + sys.argv)

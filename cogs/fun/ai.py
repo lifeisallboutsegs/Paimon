@@ -24,7 +24,8 @@ class FunAI(commands.Cog):
                 self.clients.append(AsyncGroq(api_key=key))
         else:
             print("Warning: GROQ_API_KEYS not set - AI commands won't work!")
-        self.context_store = defaultdict(lambda: deque(maxlen=60))
+        self.context_store = defaultdict(lambda: deque(maxlen=60))  # guild-wide chat
+        self.user_memory = defaultdict(lambda: deque(maxlen=30))  # per-user memory
         self.last_reply = defaultdict(float)
         self.message_since_last_reply = defaultdict(int)
         self.active_channels = defaultdict(set)
@@ -380,12 +381,25 @@ class FunAI(commands.Cog):
         chance = min(0.35, (msg_count - 4) * 0.06)
         return random.random() < chance
 
-    def _build_context_string(self, guild_id: int) -> str:
-        context = list(self.context_store[guild_id])
+    def _build_context_string(self, guild_id: int, user_id: int = None) -> str:
         lines = []
-        for msg in context:
-            prefix = "🤖" if msg["is_bot"] else "👤"
-            lines.append(f"{prefix} [{msg['author_name']} | ID:{msg['author_id']}]: {msg['content']}")
+        
+        # Add per-user memory if available
+        if user_id and self.user_memory[user_id]:
+            lines.append("--- YOUR PAST CONVERSATIONS WITH ME ---")
+            for msg in self.user_memory[user_id]:
+                prefix = "🤖" if msg["role"] == "assistant" else "👤"
+                lines.append(f"{prefix}: {msg['content']}")
+            lines.append("--- END OF PAST CONVERSATIONS ---\n")
+        
+        # Add guild-wide chat
+        guild_context = list(self.context_store[guild_id])
+        if guild_context:
+            lines.append("--- RECENT SERVER CHAT ---")
+            for msg in guild_context:
+                prefix = "🤖" if msg["is_bot"] else "👤"
+                lines.append(f"{prefix} [{msg['author_name']} | ID:{msg['author_id']}]: {msg['content']}")
+        
         return "\n".join(lines)
 
     def _parse_reply_tags(self, text: str):
@@ -417,16 +431,22 @@ class FunAI(commands.Cog):
             return
 
         guild_id = message.guild.id
-        bot_mentioned = self.bot.user.mentioned_in(message)
+        bot_mentioned = self.bot.user in message.mentions  # Only explicit @mentions
 
         if self._is_command(message):
             return
 
+        # Save to guild-wide context
         self.context_store[guild_id].append({
             "author_id": message.author.id,
             "author_name": message.author.display_name,
             "content": message.content,
             "is_bot": False
+        })
+        # Save to user's personal memory
+        self.user_memory[message.author.id].append({
+            "role": "user",
+            "content": message.content
         })
         self.message_since_last_reply[guild_id] += 1
         self.user_interaction_count[guild_id][message.author.id] += 1
@@ -444,20 +464,24 @@ class FunAI(commands.Cog):
 
         async def handle_reply():
             try:
-                context_str = self._build_context_string(guild_id)
+                context_str = self._build_context_string(guild_id, message.author.id)
                 familiarity = self.user_interaction_count[guild_id][message.author.id]
                 familiarity_note = "You've talked to this person a lot, be warmer/more casual." if familiarity > 10 else "You've talked to this person a few times." if familiarity > 3 else "This is someone you haven't talked to much yet."
 
                 system_prompt = f"""You are {self.bot.user.display_name}, a real Discord member who happens to be a bot — but you act fully human. You have a personality: witty, a little chaotic, uses internet slang naturally, occasionally sarcastic, sometimes wholesome. You are NOT an assistant.
 
-CONTEXT OF RECENT MESSAGES:
 {context_str}
 
 YOUR INFO:
 - Your name: {self.bot.user.display_name}
 - Your user ID: {self.bot.user.id}
-- Person messaging: {message.author.display_name} (ID: {message.author.id})
+- Person messaging you: {message.author.display_name} (ID: {message.author.id})
 - {familiarity_note}
+
+IMPORTANT: 
+- The "YOUR PAST CONVERSATIONS WITH ME" section contains your personal chat history with this user — remember those details!
+- DO NOT just repeat your last reply! Come up with new, relevant responses!
+- If you used a tool (like set_status, get_weather, etc), you MUST send a follow-up message about it (e.g., "done!" or "here you go" — keep it natural)!
 
 STRICT RULES:
 1. Decide first: do you ACTUALLY want to reply? If the conversation doesn't involve you or you have nothing interesting to say, reply with exactly: [NO_REPLY]
@@ -537,6 +561,11 @@ STRICT RULES:
                             "author_name": self.bot.user.display_name,
                             "content": reply_text,
                             "is_bot": True
+                        })
+                        # Save bot's reply to user's memory
+                        self.user_memory[message.author.id].append({
+                            "role": "assistant",
+                            "content": reply_text
                         })
 
                     except discord.Forbidden:
@@ -693,6 +722,11 @@ STRICT RULES:
         await ctx.send(response)
         for url in urls:
             await ctx.send(url)
+
+    @commands.hybrid_command(name="clear_memory", description="Clear your personal chat memory with the bot!")
+    async def clear_memory(self, ctx: commands.Context):
+        self.user_memory[ctx.author.id].clear()
+        await ctx.send("✅ Your personal memory has been cleared!")
 
     @commands.hybrid_command(name="wouldyourather", description="Get a 'Would You Rather' question!")
     async def wouldyourather(self, ctx: commands.Context):

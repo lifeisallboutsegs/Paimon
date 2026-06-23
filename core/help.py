@@ -103,9 +103,9 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
         if command.aliases:
             help_text.append(f"Aliases: `{'`, `'.join(command.aliases)}`")
         if command.usage:
-            help_text.append(f"Usage: `{self.clean_prefix}{command.name} {command.usage}`")
+            help_text.append(f"Usage: `{self.context.clean_prefix}{command.name} {command.usage}`")
         elif command.signature:
-            help_text.append(f"Usage: `{self.clean_prefix}{command.name} {command.signature}`")
+            help_text.append(f"Usage: `{self.context.clean_prefix}{command.name} {command.signature}`")
         if command.help:
             help_text.append("")
             help_text.append(command.help)
