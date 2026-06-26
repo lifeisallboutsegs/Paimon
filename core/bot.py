@@ -18,10 +18,10 @@ logger = logging.getLogger("bot.core")
 
 async def get_prefix(bot: "Bot", message: discord.Message):
     if message.guild is None:
-        return commands.when_mentioned_or(Config.PREFIX)(bot, message)
+        return [Config.PREFIX]
     guild_cfg = await bot.db.get_guild_config(message.guild.id)
     prefix = guild_cfg.get("prefix") or Config.PREFIX
-    return commands.when_mentioned_or(prefix)(bot, message)
+    return [prefix]
 
 
 class Bot(commands.Bot):

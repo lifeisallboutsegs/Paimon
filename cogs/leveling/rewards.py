@@ -41,10 +41,65 @@ class LevelingRewards(commands.Cog):
                 msg.append(f"Level {level}: {' and '.join(parts)}")
             await ctx.send("\n".join(msg))
 
-    @rewards.command(name="add", description="Add a level-up reward!")
-    @app_commands.describe(level="The level to reward!", role="The role to give!", coins="Coins to give!")
+    @rewards.command(
+        name="add", 
+        description="Add a level-up reward!",
+        help="Add a level-up reward! You must specify at least a role OR coins (or both).\nExamples:\n  !rewards add 10 @VIP\n  !rewards add 20 1000\n  !rewards add 30 @Legend 5000",
+        usage="<level> [role_or_coins] [coins]",
+        with_app_command=False  # Disable auto app command, we'll define it manually
+    )
     @is_owner_or_admin()
-    async def add_reward(self, ctx: commands.Context, level: int, role: discord.Role = None, coins: int = 0):
+    async def add_reward(self, ctx: commands.Context, level: int, *args):
+        role = None
+        coins = 0
+        
+        for arg in args:
+            # Try coins first (to handle cases like !rewards add 10 1000)
+            try:
+                coins = int(arg)
+                continue
+            except ValueError:
+                pass
+            
+            # Then try role
+            try:
+                role = await commands.RoleConverter().convert(ctx, arg)
+            except commands.RoleNotFound:
+                await ctx.send(f"Error: '{arg}' is not a valid role!")
+                return
+        
+        if role is None and coins <= 0:
+            await ctx.send("Error: You need to specify at least a role or coins!")
+            return
+            
+        rewards = await self._get_rewards(ctx.guild.id)
+        reward_data = {}
+        if role:
+            reward_data["role"] = role.id
+        if coins > 0:
+            reward_data["coins"] = coins
+        rewards[str(level)] = reward_data
+        await self._save_rewards(ctx.guild.id, rewards)
+        
+        parts = []
+        if role:
+            parts.append(role.mention)
+        if coins > 0:
+            parts.append(f"{coins} coins")
+        
+        await ctx.send(f"✅ Reward Added! Level {level}: {' and '.join(parts)}!")
+    
+    # Manual slash command for add
+    @rewards.app_command.command(name="add", description="Add a level-up reward!")
+    @app_commands.describe(level="The level to reward!", role="The role to give!", coins="Coins to give!")
+    @app_commands.guild_only()
+    @is_owner_or_admin()
+    async def add_reward_slash(self, interaction: discord.Interaction, level: int, role: discord.Role = None, coins: int = 0):
+        ctx = await commands.Context.from_interaction(interaction)
+        # Manually set the parameters for our helper function
+        await self._save_reward(ctx, level, role, coins)
+    
+    async def _save_reward(self, ctx, level, role, coins):
         if role is None and coins <= 0:
             await ctx.send("Error: You need to specify at least a role or coins!")
             return
@@ -66,7 +121,12 @@ class LevelingRewards(commands.Cog):
         
         await ctx.send(f"✅ Reward Added! Level {level}: {' and '.join(parts)}!")
 
-    @rewards.command(name="remove", description="Remove a level-up reward!")
+    @rewards.command(
+        name="remove", 
+        description="Remove a level-up reward!",
+        help="Remove a level-up reward for the specified level.\nExample: !rewards remove 10",
+        usage="<level>"
+    )
     @app_commands.describe(level="The level to remove the reward from!")
     @is_owner_or_admin()
     async def remove_reward(self, ctx: commands.Context, level: int):
