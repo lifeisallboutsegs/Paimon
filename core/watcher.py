@@ -48,6 +48,12 @@ class CogFileHandler(FileSystemEventHandler):
         try:
             await self.bot.reload_extension(extension)
             logger.info('Auto-reloaded cog: %s', extension)
+        except commands.ExtensionNotLoaded:
+            try:
+                await self.bot.load_extension(extension)
+                logger.info('Auto-loaded cog: %s', extension)
+            except Exception as e:
+                logger.exception('Failed to auto-load %s', extension)
         except Exception as e:
             logger.exception('Failed to auto-reload %s', extension)
 
