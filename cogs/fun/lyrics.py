@@ -5,7 +5,6 @@ from discord.ext import commands
 from bs4 import BeautifulSoup
 import aiohttp
 from config import Config
-from utils.paginator import Paginator
 
 class Lyrics(commands.Cog):
     """Lyrics commands using Genius API!"""
@@ -43,10 +42,17 @@ class Lyrics(commands.Cog):
         async with session.get(song_url, headers=headers) as resp:
             html = await resp.text()
         soup = BeautifulSoup(html, 'html.parser')
-        lyrics_containers = soup.find_all('div', attrs={'data-lyrics-container': 'true'})
+        lyrics_containers = []
+        lyrics_containers.extend(soup.find_all('div', attrs={'data-lyrics-container': 'true'}))
+        if not lyrics_containers:
+            lyrics_containers.extend(soup.find_all('div', class_='lyrics'))
+        if not lyrics_containers:
+            lyrics_containers.extend(soup.find_all('div', class_=re.compile('Lyrics__Container')))
         lyrics_text = ''
         for container in lyrics_containers:
             for unwanted in container.find_all(attrs={'data-exclude-from-selection': 'true'}):
+                unwanted.decompose()
+            for unwanted in container.find_all('div', class_=re.compile('LyricsHeader__Container')):
                 unwanted.decompose()
             for br in container.find_all('br'):
                 br.replace_with('\n')
@@ -76,6 +82,7 @@ class Lyrics(commands.Cog):
                 self.hits = hits
                 self.cog = cog
                 self.ctx = ctx
+                self.message = None
 
             @discord.ui.select(placeholder='Choose a song!', options=options, min_values=1, max_values=1)
             async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
@@ -85,21 +92,23 @@ class Lyrics(commands.Cog):
                 index = int(select.values[0])
                 result = self.hits[index]['result']
                 lyrics = await self.cog.scrape_lyrics(result['url'])
+                if not lyrics:
+                    await interaction.response.send_message(f"❌ Couldn't scrape lyrics for {result['title']}!\n{result['url']}", ephemeral=True)
+                    self.stop()
+                    return
                 embed = discord.Embed(title=f"🎵 {result['title']}", description=f"by {result['primary_artist']['name']}", color=discord.Color.blue())
                 embed.set_thumbnail(url=result['song_art_image_url'])
+                embed.set_image(url=result['header_image_thumbnail_url'])
                 embed.add_field(name='URL', value=result['url'], inline=False)
-                pages = []
-                chunk_size = 1024
-                for i in range(0, len(lyrics), chunk_size):
-                    chunk = lyrics[i:i + chunk_size]
-                    page_embed = embed.copy()
-                    page_embed.add_field(name='Lyrics', value=f'```\n{chunk}\n```', inline=False)
-                    pages.append(page_embed)
-                paginator = Paginator(pages, ctx.author.id)
-                await interaction.response.send_message(embed=pages[0], view=paginator)
+                if len(lyrics) > 1024:
+                    lyrics = lyrics[:1021] + '...'
+                embed.add_field(name='Lyrics', value=f'```\n{lyrics}\n```', inline=False)
+                await self.message.edit(content='', embed=embed, view=None)
+                await interaction.response.defer()
                 self.stop()
         view = SongSelect(hits, self, ctx)
-        await ctx.send('🔍 Found these songs! Choose one to get lyrics!', view=view)
+        sent_msg = await ctx.send('🔍 Found these songs! Choose one from the dropdown below to get lyrics!', view=view)
+        view.message = sent_msg
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Lyrics(bot))
