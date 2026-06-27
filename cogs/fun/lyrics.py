@@ -9,6 +9,8 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
+PROXY_URL = "http://100.89.113.40:8080"
+
 
 class Lyrics(commands.Cog):
     """Lyrics commands using Genius API!"""
@@ -49,7 +51,7 @@ class Lyrics(commands.Cog):
         }
 
         try:
-            async with session.get(song_url, headers=headers) as resp:
+            async with session.get(song_url, headers=headers, proxy=PROXY_URL) as resp:
                 logger.info("Scraping %s — HTTP %s", song_url, resp.status)
                 if resp.status != 200:
                     logger.error("Non-200 response (%s) for %s", resp.status, song_url)
