@@ -9,7 +9,7 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-PROXY_URL = "http://100.89.113.40:8080"
+PROXY_URL = "http://100.89.113.40:8118"
 
 
 class Lyrics(commands.Cog):
@@ -76,9 +76,11 @@ class Lyrics(commands.Cog):
         for container in containers:
             for excluded in container.find_all("div", attrs={"data-exclude-from-selection": "true"}):
                 excluded.decompose()
+            for a_tag in container.find_all("a"):
+                a_tag.unwrap()
             for br in container.find_all("br"):
                 br.replace_with("\n")
-            text = container.get_text(separator="\n").strip()
+            text = container.get_text(separator="").strip()
             if text:
                 parts.append(text)
 
@@ -159,18 +161,22 @@ class Lyrics(commands.Cog):
                     self.stop()
                     return
 
-                embed = discord.Embed(
-                    title=f"🎵 {result['title']}",
-                    description=f"by {result['primary_artist']['name']}",
-                    color=discord.Color.blue(),
-                )
-                embed.set_thumbnail(url=result["song_art_image_url"])
-                embed.add_field(name="URL", value=result["url"], inline=False)
+                header = f"🎵 **{result['title']}** by {result['primary_artist']['name']}\n{result['url']}\n\n"
+                full_text = header + lyrics
 
-                preview = lyrics[:1021] + "..." if len(lyrics) > 1024 else lyrics
-                embed.add_field(name="Lyrics", value=preview, inline=False)
+                chunks = []
+                while len(full_text) > 2000:
+                    split_at = full_text.rfind("\n", 0, 2000)
+                    if split_at == -1:
+                        split_at = 2000
+                    chunks.append(full_text[:split_at])
+                    full_text = full_text[split_at:].lstrip("\n")
+                chunks.append(full_text)
 
-                await self.message.edit(content="", embed=embed, view=None)
+                await self.message.edit(content=chunks[0], view=None)
+                for chunk in chunks[1:]:
+                    await interaction.followup.send(chunk)
+
                 self.stop()
 
             async def on_timeout(self):
