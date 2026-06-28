@@ -928,7 +928,7 @@ class FunAI(commands.Cog):
         self,
         system_prompt: str,
         user_prompt: str,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "qwen/qwen3.6-27b",
         max_tokens: int = 1024,
         use_tools: bool = True,
         fail_silent: bool = False,
@@ -1346,7 +1346,7 @@ class FunAI(commands.Cog):
                     familiarity_note,
                     context_str,
                 )
-                temperature = random.uniform(1.2, 1.8)
+                temperature = random.uniform(0.8, 1.1)
                 reply, urls = await self._generate_response(
                     system_prompt,
                     current_message_context,
