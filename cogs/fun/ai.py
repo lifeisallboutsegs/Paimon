@@ -1917,9 +1917,9 @@ class FunAI(commands.Cog):
         recent_messages = self.user_memory_recent[ctx.author.id]
         if recent_messages:
             lines.append("\n### Recent Messages")
-            for i, msg in enumerate(recent_messages):
+            for i, msg in enumerate(reversed(recent_messages)):
                 role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
-                lines.append(f"\n{role} #{len(recent_messages)-i}: {msg['content']}")
+                lines.append(f"\n{role} #{i+1}: {msg['content']}")
         else:
             lines.append("\n### Recent Messages\nNo recent messages")
         
