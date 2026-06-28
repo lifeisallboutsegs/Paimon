@@ -56,6 +56,15 @@ class FunImages(commands.Cog):
     def _enc(self, value: str) -> str:
         return urllib.parse.quote_plus(value, safe="")
 
+    def _resolve_text_and_member(self, ctx: commands.Context, text: str) -> tuple[str, Optional[discord.User]]:
+        content = text.strip()
+        member: Optional[discord.User] = None
+        if ctx.message and ctx.message.mentions:
+            member = ctx.message.mentions[0]
+            content = content.replace(member.mention, " ")
+            content = " ".join(content.split())
+        return content, member
+
     async def _send_embed_image(self, ctx: commands.Context, title: str, image_url: str, footer: Optional[str] = None, url: Optional[str] = None):
         embed = discord.Embed(title=title, color=EMBED_COLOR, url=url)
         embed.set_image(url=image_url)
@@ -273,13 +282,21 @@ class FunImages(commands.Cog):
         url = f"https://api.some-random-api.com/canvas/misc/horny?avatar={a_q}"
         await self._send_generated_image(ctx, url, "thirsty.png", "thirsty stamp")
 
-    @commands.hybrid_command(name="stupid", description="Generates the 'It's so stupid, it might just work' meme")
-    @app_commands.describe(text="The caption text", member="Whose avatar to use (defaults to you)")
-    async def stupid_plan(self, ctx: commands.Context, text: str, member: Optional[discord.User] = None):
+    @commands.hybrid_command(
+        name="stupid",
+        description="Generates the 'It's so stupid, it might just work' meme",
+        help="The caption text. You can mention a user anywhere to use their avatar.",
+    )
+    @app_commands.describe(text="The caption text")
+    async def stupid_plan(self, ctx: commands.Context, *, text: str):
         await ctx.defer()
+        content, member = self._resolve_text_and_member(ctx, text)
+        if not content:
+            await ctx.send("❌ Please provide text for the meme.")
+            return
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        t_q = self._enc(text)
+        t_q = self._enc(content)
         url = f"https://api.some-random-api.com/canvas/misc/its-so-stupid?dog={t_q}&avatar={a_q}"
         await self._send_generated_image(ctx, url, "stupid_plan.png", "stupid plan meme")
 
@@ -313,7 +330,14 @@ class FunImages(commands.Cog):
         )
         await self._send_generated_image(ctx, url, "namecard.png", "namecard")
 
-    @commands.hybrid_command(name="tweet", description="Generates a fake tweet image")
+    @commands.hybrid_command(
+        name="tweet",
+        description="Generates a fake tweet image",
+        help=(
+            "The tweet text. You can mention a user anywhere to use their avatar/name, "
+            "and optionally add light or dark as the last word. e.g. `!tweet Hello world! @user dark`"
+        ),
+    )
     async def fake_tweet(self, ctx: commands.Context, *, text: str):
         await ctx.defer()
 
@@ -345,22 +369,29 @@ class FunImages(commands.Cog):
         )
         await self._send_generated_image(ctx, url, "fake_tweet.png", "fake tweet")
 
-    @commands.hybrid_command(name="youtubecomment", description="Generates a fake YouTube comment image")
+    @commands.hybrid_command(
+        name="youtubecomment",
+        description="Generates a fake YouTube comment image",
+        help="The comment text. You can mention a user anywhere to use their avatar/name.",
+    )
     @app_commands.describe(
         text="The comment's text",
-        member="Whose avatar/name to use (defaults to you)",
     )
     async def yt_comment(
         self,
         ctx: commands.Context,
+        *,
         text: str,
-        member: Optional[discord.User] = None,
     ):
         await ctx.defer()
+        content, member = self._resolve_text_and_member(ctx, text)
+        if not content:
+            await ctx.send("❌ Please provide the comment text.")
+            return
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
         un_q = self._enc(self._display_name(user))
-        c_q = self._enc(text)
+        c_q = self._enc(content)
         url = (
             f"https://api.some-random-api.com/canvas/misc/youtube-comment?username={un_q}&comment={c_q}&avatar={a_q}"
         )
