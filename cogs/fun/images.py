@@ -1,4 +1,5 @@
 import io
+import logging
 import urllib.parse
 from typing import Literal, Optional
 
@@ -7,6 +8,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+try:
+    from PIL import Image, ImageSequence
+    PIL_AVAILABLE = True
+except ImportError:
+    Image = None  # type: ignore[assignment]
+    ImageSequence = None  # type: ignore[assignment]
+    PIL_AVAILABLE = False
+
+logger = logging.getLogger("bot.fun.images")
 EMBED_COLOR = discord.Color.blurple()
 
 
@@ -18,7 +28,7 @@ class FunImages(commands.Cog):
         self.session: Optional[aiohttp.ClientSession] = None
 
     async def cog_load(self):
-        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15))
+        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
 
     async def cog_unload(self):
         if self.session:
@@ -41,7 +51,6 @@ class FunImages(commands.Cog):
         return str(user.display_avatar.with_format("png").with_size(1024))
 
     def _display_name(self, user: discord.abc.User) -> str:
-        """Best available display name: server nickname if we have a Member, else username."""
         return getattr(user, "display_name", None) or user.name
 
     def _enc(self, value: str) -> str:
@@ -54,45 +63,121 @@ class FunImages(commands.Cog):
             embed.set_footer(text=footer)
         await ctx.send(embed=embed)
 
-    async def _send_generated_image(self, ctx: commands.Context, url: str, filename: str, friendly_name: str):
-        """Downloads a dynamically generated image (canvas APIs) and uploads it,
-        since these endpoints return raw image bytes rather than a stable URL."""
+    def _classify_image(self, data: bytes) -> Optional[str]:
+        if len(data) < 256:
+            return None
+        if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+            return "webp"
+        if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+            return "gif"
+        if data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "png"
+        if data.startswith(b"\xff\xd8\xff"):
+            return "jpg"
+        return None
+
+    def _optimize_gif(self, data: bytes, url: str) -> bytes:
+        if not PIL_AVAILABLE:
+            logger.debug("Pillow not installed, skipping GIF optimization for %s", url)
+            return data
+
         try:
-            async with self.session.get(url) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-                if resp.status != 200 or "image" not in content_type:
-                    detail = ""
-                    try:
-                        body = await resp.json()
-                        detail = body.get("error") or body.get("message") or ""
-                    except Exception:
-                        pass
-                    msg = f"❌ Couldn't generate **{friendly_name}**."
-                    if resp.status in (401, 403):
-                        msg += " This feature may require a premium API key that hasn't been configured."
-                    if detail:
-                        msg += f"\n> {detail}"
-                    await ctx.send(msg)
-                    return
+            with Image.open(io.BytesIO(data)) as im:
+                frames = []
+                durations = []
+                loop = im.info.get("loop", 0)
+                for frame in ImageSequence.Iterator(im):
+                    frame = frame.convert("P")
+                    frames.append(frame)
+                    durations.append(frame.info.get("duration", im.info.get("duration", 100)))
 
-                data = await resp.read()
-                if not data:
-                    raise ValueError("Empty response")
+                if not frames:
+                    logger.warning("GIF optimization found no frames for %s", url)
+                    return data
 
-                ext = "png"
-                if "gif" in content_type:
-                    ext = "gif"
-                elif "webp" in content_type:
-                    ext = "webp"
-                elif "jpeg" in content_type or "jpg" in content_type:
-                    ext = "jpg"
-                if not filename.lower().endswith((".png", ".gif", ".jpg", ".jpeg", ".webp")):
-                    filename = f"{filename}.{ext}"
+                output = io.BytesIO()
+                frames[0].save(
+                    output,
+                    format="GIF",
+                    save_all=True,
+                    append_images=frames[1:],
+                    loop=loop,
+                    duration=durations,
+                    optimize=True,
+                    disposal=2,
+                )
+                return output.getvalue()
+        except Exception as e:
+            logger.exception("GIF optimization failed for %s", url)
+            return data
+
+    async def _send_generated_image(self, ctx: commands.Context, url: str, filename: str, friendly_name: str):
+        last_error = None
+        for attempt in range(2):
+            try:
+                async with self.session.get(url) as resp:
+                    content_type = resp.headers.get("Content-Type", "")
+                    if resp.status != 200 or "image" not in content_type:
+                        detail = ""
+                        try:
+                            body = await resp.json()
+                            detail = body.get("error") or body.get("message") or ""
+                        except Exception:
+                            pass
+                        msg = f"❌ Couldn't generate **{friendly_name}**."
+                        if resp.status in (401, 403):
+                            msg += " This feature may require a premium API key that hasn't been configured."
+                        elif resp.status == 429:
+                            msg += " The image API is rate-limited right now — try again in a bit."
+                        if detail:
+                            msg += f"\n> {detail}"
+                        await ctx.send(msg)
+                        return
+
+                    data = await resp.read()
+
+                ext = self._classify_image(data)
+                if ext is None:
+                    if "gif" in content_type:
+                        ext = "gif"
+                    elif "png" in content_type:
+                        ext = "png"
+                    elif "webp" in content_type:
+                        ext = "webp"
+                    elif "jpeg" in content_type or "jpg" in content_type:
+                        ext = "jpg"
+
+                if ext is None:
+                    last_error = (
+                        f"received invalid image data from API; content-type={content_type}, "
+                        f"body_len={len(data)}"
+                    )
+                    logger.warning(
+                        "Image bytes classification failed for %s: %s", url, last_error
+                    )
+                    continue
+
+                if ext == "gif":
+                    data = self._optimize_gif(data, url)
+
+                base = filename
+                for known_ext in (".png", ".gif", ".jpg", ".jpeg", ".webp"):
+                    if base.lower().endswith(known_ext):
+                        base = base[: -len(known_ext)]
+                        break
+                filename = f"{base}.{ext}"
 
                 await ctx.send(file=discord.File(io.BytesIO(data), filename=filename))
-        except Exception as e:
-            print(f"[FunImages] Image generation error for {url}: {e}")
-            await ctx.send(f"❌ Couldn't generate **{friendly_name}**. Please try again later.")
+                return
+            except Exception as e:
+                last_error = str(e)
+                logger.exception("Image generation failure for %s", url)
+
+        if last_error:
+            logger.error("Failed to fetch/download generated image %s: %s", url, last_error)
+        await ctx.send(
+            f"❌ Couldn't generate **{friendly_name}** ({last_error or 'unknown error'}). Please try again later."
+        )
 
     @commands.hybrid_command(name="cat", description="Sends a random cat picture 🐱")
     async def cat(self, ctx: commands.Context):
@@ -299,11 +384,11 @@ class FunImages(commands.Cog):
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
         u_q = self._enc(self._display_name(user))
-
         url = (
             f"https://api.some-random-api.com/premium/amongus"
             f"?avatar={a_q}&username={u_q}&impostor={str(impostor).lower()}"
         )
+        logger.info("Generating Among Us animation for %s", user.display_name)
         await self._send_generated_image(ctx, url, "amongus.gif", "Among Us animation")
 
     @commands.hybrid_command(name="petpet", description="Generates a petpet gif of someone's avatar (premium)")
