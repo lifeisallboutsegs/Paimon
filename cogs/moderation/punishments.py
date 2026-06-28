@@ -48,7 +48,7 @@ class ModerationPunishments(commands.Cog):
             if str(ban_entry.user) == user or str(ban_entry.user.id) == user:
                 await ctx.guild.unban(ban_entry.user)
                 return await ctx.send(f"✅ User Unbanned: {ban_entry.user.mention}")
-        await ctx.send(f"❌ Error: User not found in ban list.")
+        await ctx.send("❌ Error: User not found in ban list.")
 
     @commands.hybrid_command(name="timeout", description="Timeout a member.")
     @app_commands.describe(
@@ -66,7 +66,7 @@ class ModerationPunishments(commands.Cog):
     ):
         seconds = helpers.parse_duration(duration)
         if seconds is None:
-            await ctx.send(f"❌ Invalid Duration: Use a format like `10m`, `1h`, `2d`.")
+            await ctx.send("❌ Invalid Duration: Use a format like `10m`, `1h`, `2d`.")
             return
         await member.timeout(
             timedelta(seconds=seconds), reason=f"{ctx.author}: {reason}"
@@ -108,7 +108,7 @@ class ModerationPunishments(commands.Cog):
             await member.remove_roles(mute_role)
             await ctx.send(f"✅ Member Unmuted: {member.mention}")
         else:
-            await ctx.send(f"❌ Error: This user is not muted.")
+            await ctx.send("❌ Error: This user is not muted.")
 
 
 async def setup(bot: commands.Bot):

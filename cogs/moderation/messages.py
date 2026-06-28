@@ -1,5 +1,3 @@
-import discord
-
 from discord import app_commands
 
 from discord.ext import commands
@@ -24,7 +22,7 @@ class ModerationMessages(commands.Cog):
     async def clear(self, ctx: commands.Context, amount: int = 10):
         if amount < 1 or amount > 100:
             return await ctx.send(
-                f"❌ Invalid Amount\nAmount must be between 1 and 100."
+                "❌ Invalid Amount\nAmount must be between 1 and 100."
             )
         deleted = await ctx.channel.purge(limit=amount + 1)
         msg = await ctx.send(

@@ -40,7 +40,7 @@ class ModerationMisc(commands.Cog):
             )
             return
         if member.id == ctx.guild.owner_id and ctx.guild.me.id != ctx.guild.owner_id:
-            await ctx.send(f"❌ Error: I can't change the server owner's nickname!")
+            await ctx.send("❌ Error: I can't change the server owner's nickname!")
             return
         try:
             await member.edit(nick=nickname)

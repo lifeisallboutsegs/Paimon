@@ -51,7 +51,7 @@ class CogFileHandler(FileSystemEventHandler):
             asyncio.run_coroutine_threadsafe(
                 self._reload_extension(extension), self.loop
             )
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to schedule reload for %s", path)
 
     async def _reload_extension(self, extension: str):
@@ -63,9 +63,9 @@ class CogFileHandler(FileSystemEventHandler):
             try:
                 await self.bot.load_extension(extension)
                 logger.info("Auto-loaded cog: %s", extension)
-            except Exception as e:
+            except Exception:
                 logger.exception("Failed to auto-load %s", extension)
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to auto-reload %s", extension)
 
 

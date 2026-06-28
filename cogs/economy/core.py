@@ -24,7 +24,7 @@ class EconomyCore(commands.Cog):
     @app_commands.describe(member="Who to give coins to", amount="How many coins")
     async def give(self, ctx: commands.Context, member: discord.Member, amount: int):
         if amount <= 0:
-            return await ctx.send(f"❌ Invalid Amount: Amount must be positive.")
+            return await ctx.send("❌ Invalid Amount: Amount must be positive.")
         sender_balance = await self.bot.db.get_balance(ctx.guild.id, ctx.author.id)
         if sender_balance < amount:
             return await ctx.send(
@@ -53,7 +53,7 @@ class EconomyCore(commands.Cog):
                     else f"Unknown User ({entry['user_id']})"
                 )
                 lines.append(f"**{i}.** {name}: {entry['balance']} coins")
-            await ctx.send(f"💰 Coin Leaderboard:\n" + "\n".join(lines))
+            await ctx.send("💰 Coin Leaderboard:\n" + "\n".join(lines))
 
 
 async def setup(bot: commands.Bot):

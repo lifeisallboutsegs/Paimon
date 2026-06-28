@@ -35,12 +35,10 @@ class Errors(commands.Cog):
             await ctx.send(f"⚠️ Cooldown: Try again in {error.retry_after:.1f}s.")
             return
         if isinstance(error, commands.NoPrivateMessage):
-            await ctx.send(f"❌ Server Only: This command can't be used in DMs.")
+            await ctx.send("❌ Server Only: This command can't be used in DMs.")
             return
         logger.exception("Unhandled command error in %s", ctx.command, exc_info=error)
-        await ctx.send(
-            f"❌ Unexpected Error: Something went wrong and has been logged."
-        )
+        await ctx.send("❌ Unexpected Error: Something went wrong and has been logged.")
 
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error):

@@ -21,7 +21,7 @@ class SettingsCore(commands.Cog):
         )
         mod_role = f"<@&{cfg['mod_role']}>" if cfg.get("mod_role") else "Not set"
         await ctx.send(f"""**Server Configuration**
-- Prefix: {cfg.get('prefix') or '(default)'}
+- Prefix: {cfg.get("prefix") or "(default)"}
 - Welcome Channel: {welcome_channel}
 - Log Channel: {log_channel}
 - Mod Role: {mod_role}""")

@@ -4,8 +4,6 @@ from discord import app_commands
 
 from discord.ext import commands
 
-from utils.checks import is_owner
-
 
 class AdminStaff(commands.Cog):
     """Commands to manage bot admins and moderators"""
