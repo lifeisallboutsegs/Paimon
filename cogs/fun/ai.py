@@ -31,6 +31,10 @@ def parse_tool_delay(value):
             if unit and unit.startswith("m"):
                 amount *= 60.0
             return max(0.0, min(300.0, amount))
+        try:
+            return max(0.0, min(300.0, float(stripped)))
+        except ValueError:
+            return 0.0
     return 0.0
 
 
@@ -52,6 +56,7 @@ def repair_failed_generation(text: str):
     if not text:
         return []
     return parse_old_function_syntax(text)
+
 
 from .ai_tools import TOOLS
 from .ai_utils import (
@@ -977,6 +982,7 @@ class FunAI(commands.Cog):
                     report_message += f"**Reported user ID:** {tool_args['user_id']}\n"
                 report_message += f"**Reason:**\n{escape_markdown(reason)}"
                 dm_errors = []
+                dm_successes = 0
                 for target_user_id in report_target_ids:
                     try:
                         user = self.bot.get_user(target_user_id)
@@ -984,14 +990,39 @@ class FunAI(commands.Cog):
                             user = await self.bot.fetch_user(target_user_id)
                         if user:
                             await user.send(report_message)
+                            dm_successes += 1
+                        else:
+                            dm_errors.append(
+                                f"Could not resolve user {target_user_id}"
+                            )
+                    except discord.Forbidden:
+                        dm_errors.append(
+                            f"User {target_user_id} has DMs disabled or blocked the bot"
+                        )
                     except Exception as e:
                         dm_errors.append(
                             f"Failed to DM user {target_user_id}: {str(e)}"
                         )
                 self.report_cooldowns[user_id] = current_time
+                if dm_successes == 0:
+                    
+                    return json.dumps(
+                        {
+                            "success": False,
+                            "error": "Report could not be delivered to anyone - all recipients failed (DMs may be disabled, or no valid owners/admins/mods are configured)",
+                            "dm_errors": dm_errors,
+                        }
+                    )
                 if dm_errors:
-                    return json.dumps({"success": True, "dm_errors": dm_errors})
-                return json.dumps({"success": True})
+                    return json.dumps(
+                        {
+                            "success": True,
+                            "delivered_to": dm_successes,
+                            "failed_count": len(dm_errors),
+                            "dm_errors": dm_errors,
+                        }
+                    )
+                return json.dumps({"success": True, "delivered_to": dm_successes})
             else:
                 return json.dumps({"error": f"Unknown tool: {tool_name}"})
         except asyncio.TimeoutError:
@@ -1072,6 +1103,7 @@ class FunAI(commands.Cog):
                         old_function_calls = parse_old_function_syntax(msg.content)
                         has_old_function_syntax = len(old_function_calls) > 0
                     if has_tool_calls:
+                       
                         tool_responses = []
                         for tool_call in msg.tool_calls:
                             tool_name = tool_call.function.name
