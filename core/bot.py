@@ -51,6 +51,8 @@ class Bot(commands.Bot):
         for path in sorted(cogs_dir.rglob("*.py")):
             if path.stem.startswith("_"):
                 continue
+            if path.stem in ["ai_tools", "ai_utils"]:
+                continue
             rel_path = path.relative_to(cogs_dir)
             extension = "cogs." + ".".join(rel_path.with_suffix("").parts)
             try:

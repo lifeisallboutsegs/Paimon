@@ -14,7 +14,7 @@ import aiohttp
 import json
 import time
 from config import Config
-from cogs.ai_tools import TOOLS
+from .ai_tools import TOOLS
 from .ai_utils import (
     find_best_match,
     sanitize_custom_emoji,
