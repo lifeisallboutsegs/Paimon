@@ -74,6 +74,8 @@ class Lyrics(commands.Cog):
 
         parts = []
         for container in containers:
+            for excluded in container.find_all("div", attrs={"data-exclude-from-selection": "true"}):
+                excluded.decompose()
             for br in container.find_all("br"):
                 br.replace_with("\n")
             text = container.get_text(separator="\n").strip()
@@ -166,7 +168,7 @@ class Lyrics(commands.Cog):
                 embed.add_field(name="URL", value=result["url"], inline=False)
 
                 preview = lyrics[:1021] + "..." if len(lyrics) > 1024 else lyrics
-                embed.add_field(name="Lyrics", value=f"```\n{preview}\n```", inline=False)
+                embed.add_field(name="Lyrics", value=preview, inline=False)
 
                 await self.message.edit(content="", embed=embed, view=None)
                 self.stop()
