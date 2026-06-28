@@ -1907,22 +1907,23 @@ class FunAI(commands.Cog):
         await ctx.defer()
         await self._hydrate_user_memory(ctx.author.id)
         
-        embed = discord.Embed(title="Your Memory", color=discord.Color.blue())
+        lines = ["## Your Memory"]
         
         if self.user_memory_summary[ctx.author.id]:
-            embed.add_field(name="Summary", value=self.user_memory_summary[ctx.author.id], inline=False)
+            lines.append(f"### Summary\n{self.user_memory_summary[ctx.author.id]}")
         else:
-            embed.add_field(name="Summary", value="No summary yet", inline=False)
+            lines.append("### Summary\nNo summary yet")
         
         recent_messages = self.user_memory_recent[ctx.author.id]
         if recent_messages:
+            lines.append("\n### Recent Messages")
             for i, msg in enumerate(recent_messages):
                 role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
-                embed.add_field(name=f"{role} #{len(recent_messages)-i}", value=msg["content"][:1024], inline=False)
+                lines.append(f"\n{role} #{len(recent_messages)-i}: {msg['content']}")
         else:
-            embed.add_field(name="Recent Messages", value="No recent messages", inline=False)
+            lines.append("\n### Recent Messages\nNo recent messages")
         
-        await ctx.send(embed=embed)
+        await self._send_safe(ctx, "\n".join(lines))
 
     @commands.hybrid_command(name="clear_memory", description="Clear your conversation memory!")
     async def clear_memory(self, ctx: commands.Context):
