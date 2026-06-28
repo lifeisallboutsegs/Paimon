@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.utils import escape_markdown
-from groq import AsyncGroq
+from groq import AsyncGroq, BadRequestError
 import random
 import asyncio
 import re
@@ -31,11 +31,28 @@ def parse_tool_delay(value):
             if unit and unit.startswith("m"):
                 amount *= 60.0
             return max(0.0, min(300.0, amount))
-        try:
-            return max(0.0, min(300.0, float(stripped)))
-        except ValueError:
-            return 0.0
     return 0.0
+
+
+def repair_failed_generation(text: str):
+    """Best-effort recovery for Groq's tool_use_failed 400 errors.
+
+    When the model emits the legacy <function=name{...}</function> syntax
+    but it's malformed in some way (missing closing brace, missing closing
+    tag, etc), Groq's own server-side tool parser rejects the whole
+    completion with a 400 before we ever see a usable message object. The
+    raw attempt is still exposed in the error body as `failed_generation`,
+    and parse_old_function_syntax is already robust to the common
+    malformations (brace-counting with a missing-brace fallback), so this
+    is just a thin, clearly-named entry point for that recovery path.
+
+    Returns a list of (tool_name, tool_args) tuples, same shape as
+    parse_old_function_syntax. Empty list if nothing could be salvaged.
+    """
+    if not text:
+        return []
+    return parse_old_function_syntax(text)
+
 from .ai_tools import TOOLS
 from .ai_utils import (
     find_best_match,
@@ -1118,11 +1135,50 @@ class FunAI(commands.Cog):
                         final_response = await self._follow_up_completion(
                             client, model, messages, temperature - 0.3, max_tokens
                         )
-                        
+                       
                         return (final_response or cleaned_text or None, urls_to_send)
                     return (msg.content, urls_to_send)
                 except asyncio.TimeoutError as tool_error:
                     print(f"Groq call timed out, falling back: {tool_error}")
+                    use_tools = False
+                except BadRequestError as tool_error:
+                    salvaged = []
+                    try:
+                        err_body = getattr(tool_error, "body", None) or {}
+                        err_info = err_body.get("error", {}) if isinstance(err_body, dict) else {}
+                        if err_info.get("code") == "tool_use_failed":
+                            failed_gen = err_info.get("failed_generation", "")
+                            salvaged = repair_failed_generation(failed_gen)
+                    except Exception as parse_err:
+                        print(f"Could not inspect tool_use_failed body: {parse_err}")
+                    if salvaged:
+                        print(
+                            f"Recovered {len(salvaged)} tool call(s) from a malformed tool_use_failed generation"
+                        )
+                        tool_responses = []
+                        for tool_name, tool_args in salvaged:
+                            tool_response = await self._call_tool(
+                                tool_name, tool_args, message
+                            )
+                            tool_responses.append((tool_name, tool_response))
+                            extract_urls_from_tool_response(
+                                tool_response, urls_to_send, seen_urls
+                            )
+                        for tool_name, tool_response in tool_responses:
+                            messages.append(
+                                {
+                                    "role": "user",
+                                    "content": f"Function {tool_name} returned: {tool_response}",
+                                }
+                            )
+                        try:
+                            final_response = await self._follow_up_completion(
+                                client, model, messages, temperature - 0.3, max_tokens
+                            )
+                            return (final_response, urls_to_send)
+                        except Exception as follow_up_err:
+                            print(f"Follow-up after salvage failed: {follow_up_err}")
+                    print(f"Tool calling failed (400), falling back: {tool_error}")
                     use_tools = False
                 except Exception as tool_error:
                     print(f"Tool calling failed, falling back: {tool_error}")

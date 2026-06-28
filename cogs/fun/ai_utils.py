@@ -154,23 +154,78 @@ def parse_reply_tags(text: str):
     return (delay_seconds, send_type, reply_to, text, reaction_emoji)
 
 
-def parse_old_function_syntax(text: str):
-    results = []
-    func_tag_pattern = "<function=([^>]+)>(?:</function>)?"
-    all_func_tags = re.findall(func_tag_pattern, text)
-    for tag_content in all_func_tags:
-        if "{" in tag_content:
-            func_name_part, args_part = tag_content.split("{", 1)
-            func_name = func_name_part.strip()
-            args_str = "{" + args_part.strip()
+def _extract_balanced_json(s: str, start: int):
+    """Given a string and the index of an opening '{', return the substring
+    from start through its matching closing '}' (inclusive), respecting
+    nested braces and braces inside string literals. Returns None if no
+    balanced closing brace is found.
+    """
+    if start >= len(s) or s[start] != "{":
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    i = start
+    while i < len(s):
+        ch = s[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
         else:
-            func_name = tag_content.strip()
-            args_str = "{}"
-        if args_str == "{}":
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return s[start : i + 1]
+        i += 1
+    return None
+
+
+def parse_old_function_syntax(text: str):
+    """Parse legacy '<function=name{...json...}</function>' (or the
+    occasional '<function=name{...json...}>' / missing-closing-tag variant)
+    tool-call syntax some models fall back to instead of structured
+    tool_calls.
+
+    NOTE: this intentionally does NOT rely on a single regex spanning from
+    '<function=' to the next bare '>', because the JSON arguments commonly
+    contain no '>' at all before hitting '</function>' - a naive
+    "[^>]+" capture group will swallow straight through to the LAST '>' in
+    the entire string (e.g. the closing '>' of '</function>' itself, or of
+    an unrelated custom emoji tag like '<:name:123456789012345678>' that
+    happens to appear earlier in the same message), corrupting the captured
+    JSON. Instead we anchor only on the opening '<function=name{' and then
+    walk forward counting brace depth to find the true end of the JSON
+    object, which is robust regardless of what follows it.
+    """
+    results = []
+    for m in re.finditer(r"<function=([A-Za-z0-9_]+)", text):
+        func_name = m.group(1)
+        search_pos = m.end()
+       
+        while search_pos < len(text) and text[search_pos] in " \t\r\n":
+            search_pos += 1
+        if search_pos >= len(text) or text[search_pos] != "{":
+          
+            results.append((func_name, {}))
+            continue
+        json_block = _extract_balanced_json(text, search_pos)
+        if json_block is None:
+            
+            patched = text[search_pos:] + "}"
+            json_block = _extract_balanced_json(patched, 0)
+        if json_block is None:
             args = {}
         else:
             try:
-                args = json.loads(args_str)
+                args = json.loads(json_block)
             except json.JSONDecodeError:
                 args = {}
         results.append((func_name, args))
