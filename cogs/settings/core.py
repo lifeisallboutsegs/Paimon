@@ -21,8 +21,14 @@ class SettingsCore(commands.Cog):
             f"<#{cfg['log_channel']}>" if cfg.get("log_channel") else "Not set"
         )
         mod_role = f"<@&{cfg['mod_role']}>" if cfg.get("mod_role") else "Not set"
+        levelup_channel = (
+            f"<#{cfg['levelup_channel']}>" if cfg.get("levelup_channel") else "Not set"
+        )
+        levelup_enabled = (
+            "On" if cfg.get("levelup_enabled", 1) else "Off"
+        )
         await ctx.send(
-            f"**Server Configuration**\n- Prefix: {cfg.get('prefix') or '(default)'}\n- Welcome Channel: {welcome_channel}\n- Log Channel: {log_channel}\n- Mod Role: {mod_role}"
+            f"**Server Configuration**\n- Prefix: {cfg.get('prefix') or '(default)'}\n- Welcome Channel: {welcome_channel}\n- Log Channel: {log_channel}\n- Mod Role: {mod_role}\n- Level-up Notifs: {levelup_enabled}\n- Level-up Channel: {levelup_channel}"
         )
 
     @config.command(
@@ -53,6 +59,20 @@ class SettingsCore(commands.Cog):
     ):
         await self.bot.db.set_guild_config(ctx.guild.id, log_channel=channel.id)
         await ctx.send(f"✅ Log Channel Set\n{channel.mention}")
+
+    @config.command(name="levelup_channel", description="Set the channel for level-up notifications.")
+    @app_commands.describe(channel="Channel for level-up notifications")
+    @is_owner_or_admin()
+    async def set_levelup_channel(self, ctx: commands.Context, channel: discord.TextChannel):
+        await self.bot.db.set_guild_config(ctx.guild.id, levelup_channel=channel.id)
+        await ctx.send(f"✅ Level-up Channel Set\n{channel.mention}")
+
+    @config.command(name="levelup_notifications", description="Enable or disable level-up notifications.")
+    @app_commands.describe(enabled="true to enable, false to disable")
+    @is_owner_or_admin()
+    async def set_levelup_notifications(self, ctx: commands.Context, enabled: bool):
+        await self.bot.db.set_guild_config(ctx.guild.id, levelup_enabled=1 if enabled else 0)
+        await ctx.send(f"✅ Level-up notifications {'enabled' if enabled else 'disabled'}")
 
     @config.command(name="mod_role", description="Set the role treated as moderator.")
     @app_commands.describe(role="Role granted moderation command access")

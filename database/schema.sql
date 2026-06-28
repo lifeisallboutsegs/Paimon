@@ -4,7 +4,9 @@ CREATE TABLE IF NOT EXISTS guild_configs (
     prefix          TEXT,
     welcome_channel INTEGER,
     log_channel     INTEGER,
-    mod_role        INTEGER
+    mod_role        INTEGER,
+    levelup_channel INTEGER,
+    levelup_enabled INTEGER DEFAULT 1
 );
 
 -- Moderation warnings

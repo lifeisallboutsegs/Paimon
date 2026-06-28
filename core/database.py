@@ -38,7 +38,11 @@ class Database:
         """Lightweight ad-hoc migrations for columns added after initial release.
         SQLite has no 'ADD COLUMN IF NOT EXISTS', so we just try the ALTER TABLE
         and ignore the failure when it means the column is already there."""
-        statements = ["ALTER TABLE economy ADD COLUMN last_work TEXT"]
+        statements = [
+            "ALTER TABLE economy ADD COLUMN last_work TEXT",
+            "ALTER TABLE guild_configs ADD COLUMN levelup_channel INTEGER",
+            "ALTER TABLE guild_configs ADD COLUMN levelup_enabled INTEGER DEFAULT 1",
+        ]
         for stmt in statements:
             try:
                 await self._conn.execute(stmt)
@@ -78,6 +82,8 @@ class Database:
                 "welcome_channel": None,
                 "log_channel": None,
                 "mod_role": None,
+                "levelup_channel": None,
+                "levelup_enabled": 1,
             }
         return dict(row)
 

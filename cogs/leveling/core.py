@@ -50,6 +50,17 @@ class LevelingCore(commands.Cog):
                 msg = [f"{message.author.mention} is now Level {new_level}! 🎉"]
                 if reward_str:
                     msg.append(f"🎁 Rewards: {' and '.join(reward_str)}!")
+                # Check guild settings for level-up notifications
+                cfg = await self.bot.db.get_guild_config(message.guild.id)
+                enabled = cfg.get("levelup_enabled", 1)
+                channel_id = cfg.get("levelup_channel")
+                if not enabled:
+                    return
+                if channel_id:
+                    ch = message.guild.get_channel(int(channel_id))
+                    if ch:
+                        await ch.send("\n".join(msg))
+                        return
                 await message.channel.send("\n".join(msg))
 
     @commands.hybrid_command(
