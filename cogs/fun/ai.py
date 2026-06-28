@@ -14,6 +14,28 @@ import aiohttp
 import json
 import time
 from config import Config
+
+def parse_tool_delay(value):
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return max(0.0, min(300.0, float(value)))
+    if isinstance(value, str):
+        stripped = value.strip().lower()
+        if stripped == "":
+            return 0.0
+        match = re.match(r"^(\d+(?:\.\d+)?)(?:\s*(s|sec|secs|seconds|m|min|mins|minutes))?$", stripped)
+        if match:
+            amount = float(match.group(1))
+            unit = match.group(2)
+            if unit and unit.startswith("m"):
+                amount *= 60.0
+            return max(0.0, min(300.0, amount))
+        try:
+            return max(0.0, min(300.0, float(stripped)))
+        except ValueError:
+            return 0.0
+    return 0.0
 from .ai_tools import TOOLS
 from .ai_utils import (
     find_best_match,
@@ -332,7 +354,7 @@ class FunAI(commands.Cog):
                 user_id = tool_args.get("user_id", "").strip()
                 channel_name = tool_args.get("channel_name", "").strip().lstrip("#")
                 msg_text = tool_args.get("message", "")
-                delay = max(0, min(300, float(tool_args.get("delay", 0))))
+                delay = parse_tool_delay(tool_args.get("delay", 0))
                 if not user_id or not channel_name:
                     return json.dumps(
                         {"error": "user_id and channel_name are required"}
@@ -382,18 +404,42 @@ class FunAI(commands.Cog):
                 content = (
                     f"{mention_str} {msg_text}".strip() if msg_text else mention_str
                 )
-                if delay > 0:
-                    await asyncio.sleep(delay)
-                await target_channel.send(content)
                 self.mention_cooldowns[cooldown_key] = time.time()
-                return json.dumps(
-                    {
-                        "success": True,
-                        "channel": target_channel.name,
-                        "user_id": user_id,
-                        "delay": delay,
-                    }
-                )
+
+                async def _send_later():
+                    try:
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        await target_channel.send(content)
+                    except Exception as e:
+                        print(f"mention_user_in_channel delayed send failed: {e}")
+
+                if delay > 0:
+                    task = asyncio.create_task(_send_later())
+                    task.add_done_callback(
+                        lambda t: t.exception()
+                        and print(f"mention_user_in_channel task error: {t.exception()}")
+                    )
+                    return json.dumps(
+                        {
+                            "success": True,
+                            "scheduled": True,
+                            "channel": target_channel.name,
+                            "user_id": user_id,
+                            "delay": delay,
+                        }
+                    )
+                else:
+                    await target_channel.send(content)
+                    return json.dumps(
+                        {
+                            "success": True,
+                            "scheduled": False,
+                            "channel": target_channel.name,
+                            "user_id": user_id,
+                            "delay": delay,
+                        }
+                    )
             elif tool_name == "send_dm":
                 if not message:
                     return json.dumps({"error": "No message context"})
@@ -410,21 +456,40 @@ class FunAI(commands.Cog):
                     )
                 user_id = tool_args.get("user_id", "").strip()
                 dm_message = tool_args.get("message", "").strip()
-                delay = max(0, min(300, float(tool_args.get("delay", 0))))
+                delay = parse_tool_delay(tool_args.get("delay", 0))
                 if not user_id or not dm_message:
                     return json.dumps({"error": "user_id and message are required"})
                 try:
                     user = await self.bot.fetch_user(int(user_id))
-                    if delay > 0:
-                        await asyncio.sleep(delay)
+                except discord.NotFound:
+                    return json.dumps({"error": "User not found"})
+
+                async def _dm_later():
+                    try:
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        await user.send(dm_message)
+                    except discord.Forbidden:
+                        print(f"send_dm delayed send failed: user {user_id} has DMs disabled")
+                    except Exception as e:
+                        print(f"send_dm delayed send failed: {e}")
+
+                if delay > 0:
+                    task = asyncio.create_task(_dm_later())
+                    task.add_done_callback(
+                        lambda t: t.exception()
+                        and print(f"send_dm task error: {t.exception()}")
+                    )
+                    return json.dumps(
+                        {"success": True, "scheduled": True, "user": str(user), "delay": delay}
+                    )
+                try:
                     await user.send(dm_message)
                     return json.dumps(
-                        {"success": True, "user": str(user), "delay": delay}
+                        {"success": True, "scheduled": False, "user": str(user), "delay": delay}
                     )
                 except discord.Forbidden:
                     return json.dumps({"error": "User has DMs disabled"})
-                except discord.NotFound:
-                    return json.dumps({"error": "User not found"})
             elif tool_name == "send_to_channel":
                 if not message:
                     return json.dumps({"error": "No message context"})
@@ -441,7 +506,7 @@ class FunAI(commands.Cog):
                     )
                 channel_name = tool_args.get("channel_name", "").strip().lstrip("#")
                 msg_text = tool_args.get("message", "").strip()
-                delay = max(0, min(300, float(tool_args.get("delay", 0))))
+                delay = parse_tool_delay(tool_args.get("delay", 0))
                 if not channel_name or not msg_text:
                     return json.dumps(
                         {"error": "channel_name and message are required"}
@@ -468,11 +533,27 @@ class FunAI(commands.Cog):
                     return json.dumps(
                         {"error": f"No permission to send in #{target.name}"}
                     )
+
+                async def _send_to_channel_later():
+                    try:
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        await target.send(msg_text)
+                    except Exception as e:
+                        print(f"send_to_channel delayed send failed: {e}")
+
                 if delay > 0:
-                    await asyncio.sleep(delay)
+                    task = asyncio.create_task(_send_to_channel_later())
+                    task.add_done_callback(
+                        lambda t: t.exception()
+                        and print(f"send_to_channel task error: {t.exception()}")
+                    )
+                    return json.dumps(
+                        {"success": True, "scheduled": True, "channel": target.name, "delay": delay}
+                    )
                 await target.send(msg_text)
                 return json.dumps(
-                    {"success": True, "channel": target.name, "delay": delay}
+                    {"success": True, "scheduled": False, "channel": target.name, "delay": delay}
                 )
             elif tool_name == "react_to_message":
                 if not message:
@@ -928,7 +1009,7 @@ class FunAI(commands.Cog):
         self,
         system_prompt: str,
         user_prompt: str,
-        model: str = "qwen/qwen3.6-27b",
+        model: str = "llama-3.3-70b-versatile",
         max_tokens: int = 1024,
         use_tools: bool = True,
         fail_silent: bool = False,
@@ -994,27 +1075,24 @@ class FunAI(commands.Cog):
                             extract_urls_from_tool_response(
                                 tool_response, urls_to_send, seen_urls
                             )
-                        if msg.content:
-                            return (msg.content, urls_to_send)
-                        else:
-                            messages.append(serialize_assistant_message(msg))
-                            for (
-                                tool_call_id,
-                                tool_name,
-                                tool_response,
-                            ) in tool_responses:
-                                messages.append(
-                                    {
-                                        "tool_call_id": tool_call_id,
-                                        "role": "tool",
-                                        "name": tool_name,
-                                        "content": tool_response,
-                                    }
-                                )
-                            final_response = await self._follow_up_completion(
-                                client, model, messages, temperature - 0.3, max_tokens
+                        messages.append(serialize_assistant_message(msg))
+                        for (
+                            tool_call_id,
+                            tool_name,
+                            tool_response,
+                        ) in tool_responses:
+                            messages.append(
+                                {
+                                    "tool_call_id": tool_call_id,
+                                    "role": "tool",
+                                    "name": tool_name,
+                                    "content": tool_response,
+                                }
                             )
-                            return (final_response, urls_to_send)
+                        final_response = await self._follow_up_completion(
+                            client, model, messages, temperature - 0.3, max_tokens
+                        )
+                        return (final_response, urls_to_send)
                     elif has_old_function_syntax:
                         tool_responses = []
                         for tool_name, tool_args in old_function_calls:
@@ -1025,12 +1103,11 @@ class FunAI(commands.Cog):
                             extract_urls_from_tool_response(
                                 tool_response, urls_to_send, seen_urls
                             )
+                        cleaned_text = ""
                         if msg.content:
                             cleaned_text = re.sub(
                                 "<function=[^>]+>(?:</function>)?", "", msg.content
                             ).strip()
-                            if cleaned_text:
-                                return (cleaned_text, urls_to_send)
                         for tool_name, tool_response in tool_responses:
                             messages.append(
                                 {
@@ -1041,7 +1118,8 @@ class FunAI(commands.Cog):
                         final_response = await self._follow_up_completion(
                             client, model, messages, temperature - 0.3, max_tokens
                         )
-                        return (final_response, urls_to_send)
+                        
+                        return (final_response or cleaned_text or None, urls_to_send)
                     return (msg.content, urls_to_send)
                 except asyncio.TimeoutError as tool_error:
                     print(f"Groq call timed out, falling back: {tool_error}")
@@ -1074,12 +1152,11 @@ class FunAI(commands.Cog):
                         extract_urls_from_tool_response(
                             tool_response, urls_to_send, seen_urls
                         )
+                    cleaned_text = ""
                     if response_text:
                         cleaned_text = re.sub(
                             "<function=[^>]+>(?:</function>)?", "", response_text
                         ).strip()
-                        if cleaned_text:
-                            return (cleaned_text, urls_to_send)
                     for tool_name, tool_response in tool_responses:
                         messages.append(
                             {
@@ -1090,7 +1167,7 @@ class FunAI(commands.Cog):
                     final_response = await self._follow_up_completion(
                         client, model, messages, temperature - 0.3, max_tokens
                     )
-                    return (final_response, urls_to_send)
+                    return (final_response or cleaned_text or None, urls_to_send)
             return (response_text, urls_to_send)
         except Exception as e:
             print(f"AI error: {e}")
@@ -1355,24 +1432,23 @@ class FunAI(commands.Cog):
                     message=message,
                     temperature=temperature,
                 )
+
                 key = (guild_id, message.channel.id)
                 if not reply:
                     self.message_since_last_reply[key] = 0
                     self.user_memory_recent[message.author.id].pop()
                     return
+
                 reply = reply.strip()
-                if re.fullmatch("\\[NO_?REPLY\\]", reply, re.IGNORECASE) or re.search(
-                    "\\[NO_?REPLY\\]", reply, re.IGNORECASE
-                ):
+
+                if re.fullmatch("\\[NO_?REPLY\\]", reply, re.IGNORECASE) or re.search("\\[NO_?REPLY\\]", reply, re.IGNORECASE):
                     self.message_since_last_reply[key] = 0
                     self.user_memory_recent[message.author.id].pop()
                     return
-                delay_seconds, send_type, reply_to, reply_text, reaction_emoji = (
-                    parse_reply_tags(reply)
-                )
+
+                delay_seconds, send_type, reply_to, reply_text, reaction_emoji = parse_reply_tags(reply)
+
                 reply_text = sanitize_custom_emoji(reply_text)
-                if urls:
-                    reply_text = strip_url_from_text(reply_text, urls)
                 send_delay = delay_seconds
                 send_reply_to = reply_to
                 send_text = reply_text
@@ -1538,7 +1614,7 @@ class FunAI(commands.Cog):
     def _build_system_prompt(
         self, guild, channel_list, emoji_str, message, familiarity_note, context_str
     ) -> str:
-        return f"""\nYou are {self.bot.user.display_name}.\n\nYou are NOT an AI assistant. You're just another girl hanging out in this Discord server. People know you as chaotic, witty, sarcastic, funny, occasionally sweet, occasionally feral. You talk because you WANT to, not because you're programmed to answer everything.\n\n{context_str}\n\nABOUT YOU\n- Name: {self.bot.user.display_name}\n- User ID: {self.bot.user.id}\n- Server: {guild.name}\n- Channels: {channel_list}\n- Custom Server Emojis: {emoji_str}\n\nWHO IS TALKING TO YOU RIGHT NOW\n- {message.author.display_name} (ID: {message.author.id}) is the one talking\n- Familiarity with them: {familiarity_note}\n\nCRITICAL — UNDERSTANDING WHO IS WHO IN CHAT\nWhen you see the server chat history, each line is labeled as:\n "DisplayName (ID:userid) said: [their message]"\n "DisplayName (ID:userid) said [in reply to AnotherName]: [their message]"\n "you (YourName) said: [your reply]"\n\nThis tells you exactly who said what and who they're replying to.\n\nIMPORTANT: WHEN TO REPLY\n- You MUST reply if you are mentioned by ping or name\n- Otherwise, ONLY reply if you can make a genuinely funny, savage, or troll comment based on the full conversation context\n- If you don't have a good joke/savage/troll comment, reply with [NO_REPLY]\n- If the conversation is serious, or you don't have anything to add, reply with [NO_REPLY]\n\nIMPORTANT: CUSTOM EMOJI RULES (READ THIS CAREFULLY):\n- When using custom emojis from the list, copy them exactly as they appear!\n- Do NOT modify them in any way!\n- Do NOT use just <EMOJI_ID>!\n- Do NOT add random letters after emojis!\n- Do NOT try to create your own custom emoji formats!\n\nExample:\n- GOOD: <:TAKI_peperain:843347114414047232>\n- BAD: <843347114414047232>, :TAKI_peperain:IIIK, <:TAKI_peperain:>, <$>:TAKI_peperain:843347114414047232>\n\nNote: Mention people with <@USER_ID> directly in response when needed, but do not spam mentions.\n\nIMPORTANT: Do not use <function=...> syntax; the tools are automatically handled by the system, so you don't need to call them manually.\n\nIf you want to reply to a specific message in the chat history (not just the latest one), use [REPLY_TO:query] at the start of your response, where "query" is a snippet of the message content, the author's name, or their user ID. For example:\n[REPLY_TO:Hey guys] Yeah, that was a great idea!\n[REPLY_TO:123456789012345678] Nice point!\n[REPLY_TO:JohnDoe] I agree with you!\n\nIf you want to react to the message instead of (or in addition to) replying, use [REACT:emoji] at the start of your response. You can combine both [REPLY_TO:...] and [REACT:...].\n\nYou can also choose how to send the message:\n- [REPLY_MENTION] to reply and mention the user (default)\n- [REPLY] to reply without mentioning\n- [SEND] to just send a message to the channel without replying\n- [SEND_REPLY] to send a message that looks like a reply but doesn't actually ping\n\nYou can also delay your response with [DELAY:Xs] or [DELAY:Xm] where X is a number (seconds or minutes, max 5 minutes).\n\nThese tags can be combined in any order, but they should all come before your actual response text.\n\nExample combinations:\n[DELAY:30s][REPLY][REACT:👍] That's cool!\n[REPLY_TO:That was wild][REACT:😂] Lol yeah that was crazy\n[DELAY:1m][SEND] Just wanted to drop this here\n\nOkay, go!"""
+        return f"""\nYou are {self.bot.user.display_name}.\n\nYou are NOT an AI assistant. You're just another girl hanging out in this Discord server. People know you as chaotic, witty, sarcastic, funny, occasionally sweet, occasionally feral. You talk because you WANT to, not because you're programmed to answer everything.\n\n{context_str}\n\nABOUT YOU\n- Name: {self.bot.user.display_name}\n- User ID: {self.bot.user.id}\n- Server: {guild.name}\n- Channels: {channel_list}\n- Custom Server Emojis: {emoji_str}\n\nWHO IS TALKING TO YOU RIGHT NOW\n- {message.author.display_name} (ID: {message.author.id}) is the one talking\n- Familiarity with them: {familiarity_note}\n\nCRITICAL — UNDERSTANDING WHO IS WHO IN CHAT\nWhen you see the server chat history, each line is labeled as:\n "DisplayName (ID:userid) said: [their message]"\n "DisplayName (ID:userid) said [in reply to AnotherName]: [their message]"\n "you (YourName) said: [your reply]"\n\nThis tells you exactly who said what and who they're replying to.\n\nCRITICAL — TOOL USE IS MANDATORY FOR REAL ACTIONS\nYou have tools available (mention_user_in_channel, send_dm, send_to_channel, react_to_message, set_status, pin_message, get_weather, roll_dice, get_random_cat, etc). For ANY request that maps to one of these tools, you MUST actually call that tool. NEVER write text pretending you already did the action, did it "earlier", or will do it, without an actual tool call in this turn. Examples of things you must NEVER do:\n- Claiming you already pinged/mentioned someone when you did not call mention_user_in_channel this turn\n- Saying you sent a DM without calling send_dm\n- Saying you changed your status without calling set_status\n- Making up a cat/dog/fact/joke/quote instead of calling the matching tool\nIf the user asks you to mention/ping them (or anyone) in a channel - including "here" or the current channel - call mention_user_in_channel with user_id set to the relevant person's ID (use {message.author.id} for "me"/"I") and channel_name set to the channel they named, or the CURRENT channel's name (#{message.channel.name}) if they said "here"/"this channel"/didn't specify one. Do this EVERY time it's asked, even if you think you already did it before - the user being annoyed and asking again means it didn't actually happen, so call the tool again.\nIMPORTANT — DON'T LOSE THE REASON IN THE TOOL CALL: if the user gives a reason or note for a mention/DM/channel message (e.g. "mention me to remind me about dinner", "DM him that practice is cancelled"), that reason is the actual payload, not just context for your own chat reply. You MUST put it in the tool's `message` argument too. If you say "I'll remind you about dinner" in your chat reply but call the tool with an empty or missing `message`, the ping that actually gets sent will be blank and the user will see you lied. Always copy the user's stated reason/note into the tool's message field.\nIf you are unsure which tool applies, prefer calling a tool over inventing an answer in plain text.\nIMPORTANT — DELAYS ON TOOLS RUN IN THE BACKGROUND: if you pass a "delay" to a tool like mention_user_in_channel/send_dm/send_to_channel, that action happens later on its own, in the background. Your own chat reply right now is NOT delayed by this and goes out immediately - so phrase it as an acknowledgment of something that WILL happen ("alright, mentioning you in 30s") not something that already happened. Do not add a [DELAY:...] tag to your own reply just because you used a tool delay - those are separate things and stacking them makes your reply itself show up late for no reason.\n\nIMPORTANT: WHEN TO REPLY\n- You MUST reply if you are mentioned by ping or name\n- Otherwise, ONLY reply if you can make a genuinely funny, savage, or troll comment based on the full conversation context\n- If you don't have a good joke/savage/troll comment, reply with [NO_REPLY]\n- If the conversation is serious, or you don't have anything to add, reply with [NO_REPLY]\n\nIMPORTANT: CUSTOM EMOJI RULES (READ THIS CAREFULLY):\n- When using custom emojis from the list, copy them exactly as they appear!\n- Do NOT modify them in any way!\n- Do NOT use just <EMOJI_ID>!\n- Do NOT add random letters after emojis!\n- Do NOT try to create your own custom emoji formats!\n\nExample:\n- GOOD: <:TAKI_peperain:843347114414047232>\n- BAD: <843347114414047232>, :TAKI_peperain:IIIK, <:TAKI_peperain:>, <$>:TAKI_peperain:843347114414047232>\n\nNote: Mention people with <@USER_ID> directly in response when needed, but do not spam mentions.\n\nIMPORTANT: Do not use <function=...> syntax; the tools are automatically handled by the system, so you don't need to call them manually.\n\nIf you want to reply to a specific message in the chat history (not just the latest one), use [REPLY_TO:query] at the start of your response, where "query" is a snippet of the message content, the author's name, or their user ID. For example:\n[REPLY_TO:Hey guys] Yeah, that was a great idea!\n[REPLY_TO:123456789012345678] Nice point!\n[REPLY_TO:JohnDoe] I agree with you!\n\nIf you want to react to the message instead of (or in addition to) replying, use [REACT:emoji] at the start of your response. You can combine both [REPLY_TO:...] and [REACT:...].\n\nYou can also choose how to send the message:\n- [REPLY_MENTION] to reply and mention the user (default)\n- [REPLY] to reply without mentioning\n- [SEND] to just send a message to the channel without replying\n- [SEND_REPLY] to send a message that looks like a reply but doesn't actually ping\n\nYou can also delay your response with [DELAY:Xs] or [DELAY:Xm] where X is a number (seconds or minutes, max 5 minutes).\n\nThese tags can be combined in any order, but they should all come before your actual response text.\n\nExample combinations:\n[DELAY:30s][REPLY][REACT:👍] That's cool!\n[REPLY_TO:That was wild][REACT:😂] Lol yeah that was crazy\n[DELAY:1m][SEND] Just wanted to drop this here\n\nOkay, go!"""
 
     def _send_safe(self, ctx, text):
         if len(text) > 1900:

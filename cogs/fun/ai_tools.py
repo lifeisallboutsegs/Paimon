@@ -116,7 +116,16 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "mention_user_in_channel",
-            "description": "Mention/ping a user in a specific channel by name. Use when asked to ping or mention someone somewhere.",
+            "description": (
+                "Mention/ping a user in a specific channel by name. Use when asked to "
+                "ping or mention someone somewhere. IMPORTANT: if the user gives ANY "
+                "reason, note, or context for the mention (e.g. 'remind me to eat "
+                "dinner', 'tell him the meeting moved', 'because he's AFK') you MUST "
+                "put that exact content in the `message` field — it is not just "
+                "flavor text for your own reply, it is what actually gets sent next "
+                "to the ping. A mention with a stated reason and an empty `message` "
+                "field is wrong and incomplete."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -130,7 +139,13 @@ TOOLS = [
                     },
                     "message": {
                         "type": "string",
-                        "description": "Optional message to send along with the mention",
+                        "description": (
+                            "The text to send right after the mention. REQUIRED "
+                            "whenever the user gave a reason, note, or message to "
+                            "pass along (e.g. 'remind him about dinner' -> message: "
+                            "'remind you about eating dinner'). Leave empty only if "
+                            "the user asked for a bare ping with no stated reason."
+                        ),
                     },
                     "delay": {
                         "type": "number",

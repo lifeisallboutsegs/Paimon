@@ -1,8 +1,11 @@
+import ast
+import io
 import os
 import time
 import platform
 import textwrap
 import traceback
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 
 import discord
@@ -167,22 +170,53 @@ class UtilityCore(commands.Cog):
     @commands.is_owner()
     async def eval_code(self, ctx: commands.Context, *, code: str):
         await ctx.defer()
-        code = self._cleanup_code(code)
+        source = self._cleanup_code(code)
         env = {
             "bot": self.bot,
             "ctx": ctx,
             "discord": discord,
             "asyncio": __import__("asyncio"),
+            "os": os,
+            "time": time,
+            "platform": platform,
+            "psutil": psutil,
+            "db": getattr(self.bot, "db", None),
             "__name__": "__main__",
         }
-
         env.update(globals())
-        to_exec = "async def __evaluate():\n" + textwrap.indent(code, "    ")
+
         try:
-            exec(to_exec, env)
-            result = await env["__evaluate"]()
-            output = self._format_code_result(result)
-            await ctx.send(f"✅ Result:\n```py\n{output}\n```")
+            parsed = ast.parse(source, mode="exec")
+            if parsed.body and isinstance(parsed.body[-1], ast.Expr):
+                parsed.body[-1] = ast.Return(parsed.body[-1].value)
+            compiled = compile(parsed, filename="<eval>", mode="exec")
+        except SyntaxError as exc:
+            await ctx.send(
+                f"❌ Syntax Error:\n```py\n{exc.text or ''}{exc.__class__.__name__}: {exc}\n```")
+            return
+
+        func_code = "async def __evaluate():\n" + textwrap.indent(source, "    ")
+        try:
+            exec(compiled, env)
+            function = env.get("__evaluate")
+            if function is None:
+                exec(func_code, env)
+                function = env["__evaluate"]
+
+            stdout_buffer = io.StringIO()
+            with redirect_stdout(stdout_buffer):
+                result = await function()
+            stdout_value = stdout_buffer.getvalue().strip()
+
+            response = []
+            if stdout_value:
+                response.append(f"📤 Output:\n```py\n{stdout_value}\n```")
+            if result is not None:
+                response.append(f"✅ Result:\n```py\n{self._format_code_result(result)}\n```")
+            if not response:
+                response.append("✅ Evaluation completed successfully. No output.")
+
+            await ctx.send("\n".join(response))
         except Exception:
             await ctx.send(
                 f"❌ Error:\n```py\n{traceback.format_exc()[:1900]}\n```")
