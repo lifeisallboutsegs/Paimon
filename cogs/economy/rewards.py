@@ -7,7 +7,6 @@ DAILY_AMOUNT = 100
 DAILY_COOLDOWN = timedelta(hours=24)
 WORK_COOLDOWN = timedelta(hours=1)
 WORK_MESSAGES = ['You fixed a bug and earned', 'You delivered a package and got', 'You wrote a great article and received', 'You helped a neighbor and were given', 'You won a small contest and got']
-
 class EconomyRewards(commands.Cog):
     """Economy reward commands (daily, work)"""
 
@@ -44,6 +43,5 @@ class EconomyRewards(commands.Cog):
         await self.bot.db.set_last_work(ctx.guild.id, ctx.author.id, now.isoformat())
         message = random.choice(WORK_MESSAGES)
         await ctx.send(f'✅ Work Complete! {message} {amount} coins! 💰')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(EconomyRewards(bot))

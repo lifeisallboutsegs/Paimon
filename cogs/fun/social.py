@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class FunSocial(commands.Cog):
     """Social fun commands"""
 
@@ -17,6 +16,5 @@ class FunSocial(commands.Cog):
     @app_commands.describe(member='Member to slap')
     async def slap(self, ctx: commands.Context, member: discord.Member):
         await ctx.send(f'{ctx.author.mention} slaps {member.mention}! 👋')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(FunSocial(bot))

@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class UtilityServer(commands.Cog):
     """Server and user info commands"""
 
@@ -25,6 +24,5 @@ class UtilityServer(commands.Cog):
     async def avatar(self, ctx: commands.Context, member: discord.Member=None):
         member = member or ctx.author
         await ctx.send(member.display_avatar.url)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(UtilityServer(bot))

@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.checks import mod_role_or_permission
-
 class ModerationMisc(commands.Cog):
     """Miscellaneous moderation commands"""
 
@@ -41,6 +40,5 @@ class ModerationMisc(commands.Cog):
             await ctx.send(f"❌ Error: I don't have permission to change {member.mention}'s nickname!")
         except discord.HTTPException as e:
             await ctx.send(f'❌ Error: Failed to change nickname - {e}')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(ModerationMisc(bot))

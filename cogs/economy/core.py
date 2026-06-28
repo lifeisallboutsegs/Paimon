@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class EconomyCore(commands.Cog):
     """Core economy commands"""
 
@@ -37,8 +36,7 @@ class EconomyCore(commands.Cog):
             for i, entry in enumerate(data, 1):
                 member = ctx.guild.get_member(entry['user_id'])
                 name = member.display_name if member else f"Unknown User ({entry['user_id']})"
-                lines.append(f"**#{i}** {name} - {entry['balance']} coins")
+                lines.append(f"**
             await ctx.send(f'💰 Coin Leaderboard:\n' + '\n'.join(lines))
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(EconomyCore(bot))

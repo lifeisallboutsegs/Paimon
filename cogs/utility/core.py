@@ -3,7 +3,6 @@ import platform
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class UtilityCore(commands.Cog):
     """Core utility commands (ping, info, uptime)"""
 
@@ -28,6 +27,5 @@ class UtilityCore(commands.Cog):
         hours, remainder = divmod(int(delta.total_seconds()), 3600)
         minutes, seconds = divmod(remainder, 60)
         await ctx.send(f'⏱️ {days}d {hours}h {minutes}m {seconds}s')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(UtilityCore(bot))

@@ -3,7 +3,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
-
 class Config:
     TOKEN: str = os.getenv('DISCORD_TOKEN', '')
     PREFIX: str = os.getenv('DEFAULT_PREFIX', '!')

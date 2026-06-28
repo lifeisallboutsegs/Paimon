@@ -6,7 +6,6 @@ import time
 from discord import app_commands
 from discord.ext import commands
 from utils.checks import is_owner
-
 class AdminMisc(commands.Cog):
     """Miscellaneous admin commands"""
 
@@ -58,6 +57,5 @@ class AdminMisc(commands.Cog):
         activity_text = {'playing': 'Playing', 'listening': 'Listening to', 'watching': 'Watching', 'competing': 'Competing in', 'streaming': 'Streaming'}.get(activity_type, 'Watching')
         status_text = {'online': 'Online', 'idle': 'Idle', 'dnd': 'Do Not Disturb'}.get(status, 'Online')
         await ctx.send(f'Status updated: {status_text} - {activity_text} {text}')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(AdminMisc(bot))

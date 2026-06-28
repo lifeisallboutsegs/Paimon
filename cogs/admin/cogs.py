@@ -7,7 +7,6 @@ from utils.checks import is_owner
 from config import Config
 from groq import AsyncGroq
 logger = logging.getLogger('bot.admin.cogs')
-
 class AdminCogs(commands.Cog):
     """Commands to manage cogs"""
 
@@ -130,6 +129,5 @@ class AdminCogs(commands.Cog):
             if not name:
                 name = f'cog_{random.randint(1000, 9999)}'
             return (category, name)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(AdminCogs(bot))

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 from utils.helpers import xp_for_level
 logger = logging.getLogger('bot.json_store')
-
 class JSONDatabase:
 
     def __init__(self, directory: Path):

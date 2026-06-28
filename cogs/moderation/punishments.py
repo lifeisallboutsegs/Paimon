@@ -4,7 +4,6 @@ from discord import app_commands
 from discord.ext import commands
 from utils import helpers
 from utils.checks import mod_role_or_permission
-
 class ModerationPunishments(commands.Cog):
     """Punishment commands (kick, ban, mute, etc.)"""
 
@@ -28,7 +27,7 @@ class ModerationPunishments(commands.Cog):
         await ctx.send(f'✅ Member Banned: {member.mention} — {reason}')
 
     @commands.hybrid_command(name='unban', description='Unban a user from the server.')
-    @app_commands.describe(user='User to unban (username#discriminator or ID)')
+    @app_commands.describe(user='User to unban (username
     @mod_role_or_permission('ban_members')
     @commands.bot_has_permissions(ban_members=True)
     async def unban(self, ctx: commands.Context, *, user: str):
@@ -75,6 +74,5 @@ class ModerationPunishments(commands.Cog):
             await ctx.send(f'✅ Member Unmuted: {member.mention}')
         else:
             await ctx.send(f'❌ Error: This user is not muted.')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(ModerationPunishments(bot))

@@ -4,7 +4,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.helpers import xp_for_level
-
 class LevelingCore(commands.Cog):
     """Leveling system commands and listener"""
 
@@ -70,8 +69,7 @@ class LevelingCore(commands.Cog):
             for i, entry in enumerate(data, 1):
                 member = ctx.guild.get_member(entry['user_id'])
                 name = member.display_name if member else f"Unknown User ({entry['user_id']})"
-                msg.append(f"#{i} {name} - Level {entry['level']} ({entry['xp']} XP)")
+                msg.append(f"
         await ctx.send('\n'.join(msg))
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(LevelingCore(bot))

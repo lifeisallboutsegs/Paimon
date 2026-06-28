@@ -9,7 +9,6 @@ import aiohttp
 from config import Config
 logger = logging.getLogger(__name__)
 PROXY_URL = 'http://100.89.113.40:8080'
-
 class Lyrics(commands.Cog):
     """Lyrics commands using Genius API!"""
 
@@ -165,6 +164,5 @@ class Lyrics(commands.Cog):
         song_list = '\n'.join(lines)
         sent_msg = await ctx.send(content=f'🔍 **Found these songs!** Choose one from the dropdown:\n\n{song_list}', files=image_files if image_files else discord.utils.MISSING, view=view)
         view.message = sent_msg
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(Lyrics(bot))

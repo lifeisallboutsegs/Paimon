@@ -1,6 +1,5 @@
 from discord.ext import commands
 from config import Config
-
 def is_owner():
 
     async def predicate(ctx: commands.Context) -> bool:
@@ -10,7 +9,6 @@ def is_owner():
             return True
         raise commands.NotOwner()
     return commands.check(predicate)
-
 def is_bot_admin():
 
     async def predicate(ctx: commands.Context) -> bool:
@@ -26,7 +24,6 @@ def is_bot_admin():
             return True
         raise commands.MissingPermissions(['bot_admin'])
     return commands.check(predicate)
-
 def is_bot_moderator():
 
     async def predicate(ctx: commands.Context) -> bool:
@@ -48,7 +45,6 @@ def is_bot_moderator():
             return True
         raise commands.MissingPermissions(['bot_moderator'])
     return commands.check(predicate)
-
 def is_owner_or_admin():
 
     async def predicate(ctx: commands.Context) -> bool:
@@ -66,7 +62,6 @@ def is_owner_or_admin():
             return True
         raise commands.MissingPermissions(['administrator'])
     return commands.check(predicate)
-
 def mod_role_or_permission(permission: str):
     """Allow if the user has the given guild permission OR the server's configured mod role OR is a bot moderator/admin/owner."""
 

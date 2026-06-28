@@ -10,14 +10,12 @@ from config import Config
 from core.help import CustomHelpCommand
 from core.watcher import CogWatcher
 logger = logging.getLogger('bot.core')
-
 async def get_prefix(bot: 'Bot', message: discord.Message):
     if message.guild is None:
         return [Config.PREFIX]
     guild_cfg = await bot.db.get_guild_config(message.guild.id)
     prefix = guild_cfg.get('prefix') or Config.PREFIX
     return [prefix]
-
 class Bot(commands.Bot):
 
     def __init__(self, db):

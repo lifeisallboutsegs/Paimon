@@ -3,7 +3,6 @@ from discord import app_commands
 from discord.ext import commands
 import json
 from utils.checks import is_owner_or_admin
-
 class LevelingRewards(commands.Cog):
     """Level-up reward management commands!"""
 
@@ -109,6 +108,5 @@ class LevelingRewards(commands.Cog):
             await ctx.send(f'✅ Reward Removed! Removed reward from level {level}!')
         else:
             await ctx.send('Error: No reward set for that level!')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(LevelingRewards(bot))

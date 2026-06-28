@@ -6,7 +6,6 @@ from typing import Any, Iterable
 import aiosqlite
 from utils.helpers import xp_for_level
 logger = logging.getLogger('bot.database')
-
 class Database:
 
     def __init__(self, path: Path):

@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import aiohttp
-
 class FunImages(commands.Cog):
     """Random images and facts commands!"""
 
@@ -89,6 +88,5 @@ class FunImages(commands.Cog):
             await ctx.send(f"ℹ️ Weather in {data['name']}, {data['sys']['country']}\nTemperature: {data['main']['temp']}°C\nFeels like: {data['main']['feels_like']}°C\nDescription: {data['weather'][0]['description'].capitalize()}\nHumidity: {data['main']['humidity']}%\nWind speed: {data['wind']['speed']} m/s")
         else:
             await ctx.send("❌ Oops!\nCouldn't get weather info!")
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(FunImages(bot))

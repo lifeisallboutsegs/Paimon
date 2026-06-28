@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.checks import is_owner_or_admin
-
 class SettingsCore(commands.Cog):
     """Server settings commands"""
 
@@ -12,7 +11,7 @@ class SettingsCore(commands.Cog):
     @commands.hybrid_group(name='config', description='View or change server configuration.')
     async def config(self, ctx: commands.Context):
         cfg = await self.bot.db.get_guild_config(ctx.guild.id)
-        await ctx.send(f"""**Server Configuration**\n- Prefix: {cfg.get('prefix') or '(default)'}\n- Welcome Channel: {(f"<#{cfg['welcome_channel']}>" if cfg.get('welcome_channel') else 'Not set')}\n- Log Channel: {(f"<#{cfg['log_channel']}>" if cfg.get('log_channel') else 'Not set')}\n- Mod Role: {(f"<@&{cfg['mod_role']}>" if cfg.get('mod_role') else 'Not set')}""")
+        await ctx.send(f"""**Server Configuration**\n- Prefix: {cfg.get('prefix') or '(default)'}\n- Welcome Channel: {(f"<
 
     @config.command(name='prefix', description='Set a custom command prefix for this server.')
     @app_commands.describe(prefix='New prefix, e.g. !')
@@ -41,6 +40,5 @@ class SettingsCore(commands.Cog):
     async def set_mod_role(self, ctx: commands.Context, role: discord.Role):
         await self.bot.db.set_guild_config(ctx.guild.id, mod_role=role.id)
         await ctx.send(f'✅ Mod Role Set\n{role.mention}')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(SettingsCore(bot))

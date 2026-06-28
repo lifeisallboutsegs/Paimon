@@ -7,7 +7,6 @@ from discord.ext import commands
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 logger = logging.getLogger('bot.watcher')
-
 class CogFileHandler(FileSystemEventHandler):
     """Handler to watch for file changes in the cogs directory!"""
 
@@ -56,7 +55,6 @@ class CogFileHandler(FileSystemEventHandler):
                 logger.exception('Failed to auto-load %s', extension)
         except Exception as e:
             logger.exception('Failed to auto-reload %s', extension)
-
 class CogWatcher:
     """Watcher that monitors cogs directory for file changes!"""
 

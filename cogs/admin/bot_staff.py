@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.checks import is_owner
-
 class AdminStaff(commands.Cog):
     """Commands to manage bot admins and moderators"""
 
@@ -106,6 +105,5 @@ class AdminStaff(commands.Cog):
             else:
                 mentions.append(f'Unknown User ({uid})')
         await ctx.send('\n'.join(mentions))
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(AdminStaff(bot))

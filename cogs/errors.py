@@ -2,7 +2,6 @@ import logging
 import discord
 from discord.ext import commands
 logger = logging.getLogger('bot.errors')
-
 class Errors(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
@@ -42,6 +41,5 @@ class Errors(commands.Cog):
             await interaction.followup.send('Something went wrong.', ephemeral=True)
         else:
             await interaction.response.send_message('Something went wrong.', ephemeral=True)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(Errors(bot))

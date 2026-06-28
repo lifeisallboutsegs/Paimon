@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-
 class CustomHelpCommand(commands.DefaultHelpCommand):
     """Custom help command that groups commands by proper categories!"""
     CATEGORY_MAP = {'admin': 'Admin', 'bot_staff': 'Admin', 'cogs': 'Admin', 'misc': 'Admin', 'moderation': 'Moderation', 'punishments': 'Moderation', 'warnings': 'Moderation', 'economy': 'Economy', 'leveling': 'Leveling', 'fun': 'Fun', 'funai': 'Fun', 'fungames': 'Fun', 'funmisc': 'Fun', 'funsocial': 'Fun', 'utility': 'Utility', 'settings': 'Settings'}

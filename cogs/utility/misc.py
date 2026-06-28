@@ -2,7 +2,6 @@ import random
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class UtilityMisc(commands.Cog):
     """Miscellaneous utility commands"""
 
@@ -40,6 +39,5 @@ class UtilityMisc(commands.Cog):
     async def question(self, ctx: commands.Context, *, question: str):
         responses = ['Yes', 'No', 'Maybe', 'Definitely', "I don't think so", 'Absolutely!']
         await ctx.send(f'❓ {question}\n{random.choice(responses)}')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(UtilityMisc(bot))

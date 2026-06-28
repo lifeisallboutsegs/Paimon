@@ -2,7 +2,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.checks import mod_role_or_permission
-
 class ModerationMessages(commands.Cog):
     """Message moderation commands"""
 
@@ -19,6 +18,5 @@ class ModerationMessages(commands.Cog):
         deleted = await ctx.channel.purge(limit=amount + 1)
         msg = await ctx.send(f'✅ Messages Cleared\nDeleted {len(deleted) - 1} messages.')
         await msg.delete(delay=3)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(ModerationMessages(bot))

@@ -2,7 +2,6 @@ import random
 import discord
 from discord import app_commands
 from discord.ext import commands
-
 class FunGames(commands.Cog):
     """Fun games commands"""
 
@@ -24,6 +23,5 @@ class FunGames(commands.Cog):
         else:
             result = 'You lose!'
         await ctx.send(f'ℹ️ Rock-Paper-Scissors\nYou chose: **{choice}**\nBot chose: **{bot_choice}**\n\n{result}')
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(FunGames(bot))

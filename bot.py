@@ -4,7 +4,6 @@ from core.bot import Bot
 from core.database import Database
 from core.json_store import JSONDatabase
 from core.logger import setup_logging
-
 async def main() -> None:
     Config.validate()
     logger = setup_logging(Config.LOG_LEVEL)
