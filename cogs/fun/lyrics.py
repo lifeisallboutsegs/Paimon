@@ -1,3 +1,4 @@
+import io
 import re
 import logging
 import discord
@@ -30,6 +31,17 @@ class Lyrics(commands.Cog):
         if self.http_session is None or self.http_session.closed:
             self.http_session = aiohttp.ClientSession()
         return self.http_session
+
+    async def fetch_image(self, url: str):
+        session = self._get_http_session()
+        try:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    data = await resp.read()
+                    return data
+        except Exception:
+            logger.exception("Failed to fetch image: %s", url)
+        return None
 
     async def search_songs(self, query: str):
         session = self._get_http_session()
@@ -105,6 +117,9 @@ class Lyrics(commands.Cog):
             return
 
         options = []
+        lines = []
+        image_files = []
+
         for i, hit in enumerate(hits[:10]):
             result = hit["result"]
             label = f"{result['title']} by {result['primary_artist']['name']}"
@@ -115,6 +130,10 @@ class Lyrics(commands.Cog):
                     description=result["url"][:100],
                 )
             )
+            lines.append(f"`{i + 1}.` **{result['title']}** — {result['primary_artist']['name']}")
+            img_data = await self.fetch_image(result.get("song_art_image_url", ""))
+            if img_data:
+                image_files.append(discord.File(io.BytesIO(img_data), filename=f"song_{i + 1}.jpg"))
 
         cog_ref = self
 
@@ -173,7 +192,10 @@ class Lyrics(commands.Cog):
                     full_text = full_text[split_at:].lstrip("\n")
                 chunks.append(full_text)
 
-                await self.message.edit(content=chunks[0], view=None)
+                art_data = await cog_ref.fetch_image(result.get("song_art_image_url", ""))
+                art_file = discord.File(io.BytesIO(art_data), filename="cover.jpg") if art_data else None
+
+                await self.message.edit(content=chunks[0], attachments=[art_file] if art_file else [], view=None)
                 for chunk in chunks[1:]:
                     await interaction.followup.send(chunk)
 
@@ -187,8 +209,10 @@ class Lyrics(commands.Cog):
                         pass
 
         view = SongSelect(hits, ctx)
+        song_list = "\n".join(lines)
         sent_msg = await ctx.send(
-            "🔍 Found these songs! Choose one from the dropdown to get lyrics.",
+            content=f"🔍 **Found these songs!** Choose one from the dropdown:\n\n{song_list}",
+            files=image_files if image_files else discord.utils.MISSING,
             view=view,
         )
         view.message = sent_msg
