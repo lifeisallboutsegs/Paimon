@@ -2,18 +2,12 @@
 
 Tool/function schemas for the FunAI cog's Groq tool-calling.
 
-
-
 Pulled out of fun_ai.py so the schema list can be read, diffed, and extended
 
 without scrolling through hundreds of lines of cog logic (issue #40).
 
-
-
 To add a new tool:
-
   1. Add its schema dict to TOOLS below.
-
   2. Implement the matching branch in FunAI._call_tool().
 
 That's it — nothing else in the cog needs to change.

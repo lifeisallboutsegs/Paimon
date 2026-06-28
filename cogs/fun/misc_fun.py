@@ -11,12 +11,10 @@ class FunMisc(commands.Cog):
     """Miscellaneous fun commands!"""
 
     def __init__(self, bot: commands.Bot):
-
         self.bot = bot
 
     @commands.hybrid_command(name="joke", description="Tell a random joke!")
     async def joke(self, ctx: commands.Context):
-
         jokes = [
             "Why don't scientists trust atoms? Because they make up everything!",
             "What do you call fake spaghetti? An impasta!",
@@ -27,7 +25,6 @@ class FunMisc(commands.Cog):
             "Why did the bicycle fall over? Because it was two-tired!",
             "What do you call a fish without eyes? A fsh!",
         ]
-
         await ctx.send(f"ℹ️ Joke\n{random.choice(jokes)}")
 
     @commands.hybrid_command(name="random_num", description="Get a random number!")
@@ -35,11 +32,8 @@ class FunMisc(commands.Cog):
     async def random_number(
         self, ctx: commands.Context, min_num: int = 1, max_num: int = 100
     ):
-
         if min_num > max_num:
-
             await ctx.send("❌ Error\nMinimum number can't be bigger than maximum!")
-
             return
 
         await ctx.send(
@@ -49,18 +43,13 @@ class FunMisc(commands.Cog):
     @commands.hybrid_command(name="choose", description="Let the bot choose for you!")
     @app_commands.describe(options="Options separated by spaces")
     async def choose(self, ctx: commands.Context, *, options: str):
-
         option_list = options.split()
-
         if len(option_list) < 2:
-
             await ctx.send("❌ Error\nPlease give at least 2 options!")
-
             return
 
         await ctx.send(f"ℹ️ I choose...\n**{random.choice(option_list)}**!")
 
 
 async def setup(bot: commands.Bot):
-
     await bot.add_cog(FunMisc(bot))
