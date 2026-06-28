@@ -1,5 +1,4 @@
 import io
-import os
 import urllib.parse
 from typing import Literal, Optional
 
@@ -8,7 +7,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-SOME_RANDOM_API_KEY = os.getenv("SOME_RANDOM_API_KEY")
 EMBED_COLOR = discord.Color.blurple()
 
 
@@ -20,14 +18,12 @@ class FunImages(commands.Cog):
         self.session: Optional[aiohttp.ClientSession] = None
 
     async def cog_load(self):
-      
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15))
 
     async def cog_unload(self):
         if self.session:
             await self.session.close()
 
- 
     async def _fetch_json(self, url: str):
         try:
             async with self.session.get(url) as resp:
@@ -44,16 +40,12 @@ class FunImages(commands.Cog):
     def _avatar_url(self, user: discord.abc.User) -> str:
         return str(user.display_avatar.with_format("png").with_size(1024))
 
-    def _enc(self, value: str) -> str:
-        
-        return urllib.parse.quote_plus(value, safe="")
+    def _display_name(self, user: discord.abc.User) -> str:
+        """Best available display name: server nickname if we have a Member, else username."""
+        return getattr(user, "display_name", None) or user.name
 
-    def _with_key(self, url: str) -> str:
-        """Appends the some-random-api premium key as a query param, if configured."""
-        if not SOME_RANDOM_API_KEY:
-            return url
-        sep = "&" if "?" in url else "?"
-        return f"{url}{sep}key={self._enc(SOME_RANDOM_API_KEY)}"
+    def _enc(self, value: str) -> str:
+        return urllib.parse.quote_plus(value, safe="")
 
     async def _send_embed_image(self, ctx: commands.Context, title: str, image_url: str, footer: Optional[str] = None, url: Optional[str] = None):
         embed = discord.Embed(title=title, color=EMBED_COLOR, url=url)
@@ -101,8 +93,6 @@ class FunImages(commands.Cog):
         except Exception as e:
             print(f"[FunImages] Image generation error for {url}: {e}")
             await ctx.send(f"❌ Couldn't generate **{friendly_name}**. Please try again later.")
-
-
 
     @commands.hybrid_command(name="cat", description="Sends a random cat picture 🐱")
     async def cat(self, ctx: commands.Context):
@@ -176,14 +166,13 @@ class FunImages(commands.Cog):
             url=data.get("postLink"),
         )
 
-
     @commands.hybrid_command(name="thirsty", description="Stamps a cheeky 'horny' tag onto someone's avatar 😅")
     @app_commands.describe(member="Whose avatar to use (defaults to you)")
     async def thirsty(self, ctx: commands.Context, member: Optional[discord.User] = None):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        url = self._with_key(f"https://api.some-random-api.com/canvas/misc/horny?avatar={a_q}")
+        url = f"https://api.some-random-api.com/canvas/misc/horny?avatar={a_q}"
         await self._send_generated_image(ctx, url, "thirsty.png", "thirsty stamp")
 
     @commands.hybrid_command(name="stupid", description="Generates the 'It's so stupid, it might just work' meme")
@@ -193,7 +182,7 @@ class FunImages(commands.Cog):
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
         t_q = self._enc(text)
-        url = self._with_key(f"https://api.some-random-api.com/canvas/misc/its-so-stupid?dog={t_q}&avatar={a_q}")
+        url = f"https://api.some-random-api.com/canvas/misc/its-so-stupid?dog={t_q}&avatar={a_q}"
         await self._send_generated_image(ctx, url, "stupid_plan.png", "stupid plan meme")
 
     @commands.hybrid_command(name="lolice", description="Sends someone to anime police custody 🚓")
@@ -202,68 +191,74 @@ class FunImages(commands.Cog):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        url = self._with_key(f"https://api.some-random-api.com/canvas/misc/lolice?avatar={a_q}")
+        url = f"https://api.some-random-api.com/canvas/misc/lolice?avatar={a_q}"
         await self._send_generated_image(ctx, url, "lolice.png", "lolice card")
 
     @commands.hybrid_command(name="namecard", description="Generates an anime-style namecard with your avatar")
     @app_commands.describe(
-        username="Name to display",
         birthday="Birthday text (e.g. '5 June')",
-        member="Whose avatar to use (defaults to you)",
+        member="Whose avatar/name to use (defaults to you)",
     )
-    async def namecard(self, ctx: commands.Context, username: str, birthday: str, member: Optional[discord.User] = None):
+    async def namecard(
+        self,
+        ctx: commands.Context,
+        birthday: str,
+        member: Optional[discord.User] = None,
+    ):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        u_q = self._enc(username)
+        u_q = self._enc(self._display_name(user))
         b_q = self._enc(birthday)
-        url = self._with_key(
+        url = (
             f"https://api.some-random-api.com/canvas/misc/namecard?username={u_q}&birthday={b_q}&avatar={a_q}"
         )
         await self._send_generated_image(ctx, url, "namecard.png", "namecard")
 
     @commands.hybrid_command(name="tweet", description="Generates a fake tweet image")
     @app_commands.describe(
-        display_name="Name shown on the tweet",
-        username="Handle shown on the tweet (without @)",
         text="The tweet's text",
+        member="Whose avatar/name to use (defaults to you)",
         theme="Light or dark mode",
-        member="Whose avatar to use (defaults to you)",
     )
     async def fake_tweet(
         self,
         ctx: commands.Context,
-        display_name: str,
-        username: str,
         text: str,
-        theme: Literal["light", "dark"] = "light",
         member: Optional[discord.User] = None,
+        theme: Literal["light", "dark"] = "light",
     ):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        dn_q = self._enc(display_name)
-        un_q = self._enc(username)
+        dn_q = self._enc(self._display_name(user))
+        un_q = self._enc(user.name)
         c_q = self._enc(text)
-        url = self._with_key(
+        url = (
             f"https://api.some-random-api.com/canvas/misc/tweet?displayname={dn_q}&username={un_q}&comment={c_q}&theme={theme}&avatar={a_q}"
         )
         await self._send_generated_image(ctx, url, "fake_tweet.png", "fake tweet")
 
     @commands.hybrid_command(name="youtubecomment", description="Generates a fake YouTube comment image")
-    @app_commands.describe(username="Name shown on the comment", text="The comment's text", member="Whose avatar to use (defaults to you)")
-    async def yt_comment(self, ctx: commands.Context, username: str, text: str, member: Optional[discord.User] = None):
+    @app_commands.describe(
+        text="The comment's text",
+        member="Whose avatar/name to use (defaults to you)",
+    )
+    async def yt_comment(
+        self,
+        ctx: commands.Context,
+        text: str,
+        member: Optional[discord.User] = None,
+    ):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        un_q = self._enc(username)
+        un_q = self._enc(self._display_name(user))
         c_q = self._enc(text)
-        url = self._with_key(
+        url = (
             f"https://api.some-random-api.com/canvas/misc/youtube-comment?username={un_q}&comment={c_q}&avatar={a_q}"
         )
         await self._send_generated_image(ctx, url, "yt_comment.png", "YouTube comment")
-
-  
 
     @commands.hybrid_command(name="anime", description="Sends a random anime reaction gif or quote")
     @app_commands.describe(category="The kind of anime gif/quote to fetch")
@@ -289,23 +284,27 @@ class FunImages(commands.Cog):
             else:
                 await ctx.send("❌ Unexpected response from the anime API.")
 
-
-
-    @commands.hybrid_command(name="amongus", description="Generates an Among Us ejection image (premium)")
+    @commands.hybrid_command(name="amongus", description="Generates an Among Us GIF animation")
     @app_commands.describe(
-        username="Name shown on the image",
-        impostor="Was this person the impostor?",
-        member="Whose avatar to use (defaults to you)",
+        member="Whose avatar/name to use (defaults to you)",
+        impostor="Was this person the impostor? (default: False)",
     )
-    async def among_us(self, ctx: commands.Context, username: str, impostor: bool = False, member: Optional[discord.User] = None):
+    async def among_us(
+        self,
+        ctx: commands.Context,
+        member: Optional[discord.User] = None,
+        impostor: bool = False,
+    ):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        u_q = self._enc(username)
-        url = self._with_key(
-            f"https://api.some-random-api.com/premium/amongus?avatar={a_q}&username={u_q}&impostor={str(impostor).lower()}"
+        u_q = self._enc(self._display_name(user))
+
+        url = (
+            f"https://api.some-random-api.com/premium/amongus"
+            f"?avatar={a_q}&username={u_q}&impostor={str(impostor).lower()}"
         )
-        await self._send_generated_image(ctx, url, "among_us.png", "Among Us image")
+        await self._send_generated_image(ctx, url, "amongus.gif", "Among Us animation")
 
     @commands.hybrid_command(name="petpet", description="Generates a petpet gif of someone's avatar (premium)")
     @app_commands.describe(member="Whose avatar to use (defaults to you)")
@@ -313,7 +312,7 @@ class FunImages(commands.Cog):
         await ctx.defer()
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
-        url = self._with_key(f"https://api.some-random-api.com/premium/petpet?avatar={a_q}")
+        url = f"https://api.some-random-api.com/premium/petpet?avatar={a_q}"
         await self._send_generated_image(ctx, url, "petpet.gif", "petpet gif")
 
 
