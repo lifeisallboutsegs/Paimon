@@ -24,6 +24,7 @@ from .ai_utils import (
     parse_reply_tags,
     parse_old_function_syntax,
     strip_url_from_text,
+    remove_duplicate_mentions,
 )
 
 MEM_SUMMARY_NS = "ai_memory_summary"
@@ -1370,6 +1371,7 @@ class FunAI(commands.Cog):
                     parse_reply_tags(reply)
                 )
                 reply_text = sanitize_custom_emoji(reply_text)
+                reply_text = remove_duplicate_mentions(reply_text)
                 if urls:
                     reply_text = strip_url_from_text(reply_text, urls)
                 send_delay = delay_seconds
@@ -1901,19 +1903,20 @@ class FunAI(commands.Cog):
         except Exception:
             await ctx.send("urban dictionary lookup failed")
 
-
-    @commands.hybrid_command(name="view_memory", description="View your conversation memory!")
+    @commands.hybrid_command(
+        name="view_memory", description="View your conversation memory!"
+    )
     async def view_memory(self, ctx: commands.Context):
         await ctx.defer()
         await self._hydrate_user_memory(ctx.author.id)
-        
+
         lines = ["## Your Memory"]
-        
+
         if self.user_memory_summary[ctx.author.id]:
             lines.append(f"### Summary\n{self.user_memory_summary[ctx.author.id]}")
         else:
             lines.append("### Summary\nNo summary yet")
-        
+
         recent_messages = self.user_memory_recent[ctx.author.id]
         if recent_messages:
             lines.append("\n### Recent Messages")
@@ -1922,10 +1925,12 @@ class FunAI(commands.Cog):
                 lines.append(f"\n{role} #{i+1}: {msg['content']}")
         else:
             lines.append("\n### Recent Messages\nNo recent messages")
-        
+
         await self._send_safe(ctx, "\n".join(lines))
 
-    @commands.hybrid_command(name="clear_memory", description="Clear your conversation memory!")
+    @commands.hybrid_command(
+        name="clear_memory", description="Clear your conversation memory!"
+    )
     async def clear_memory(self, ctx: commands.Context):
         await ctx.defer()
         self.user_memory_summary[ctx.author.id] = ""
