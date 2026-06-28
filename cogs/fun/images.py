@@ -314,24 +314,32 @@ class FunImages(commands.Cog):
         await self._send_generated_image(ctx, url, "namecard.png", "namecard")
 
     @commands.hybrid_command(name="tweet", description="Generates a fake tweet image")
-    @app_commands.describe(
-        text="The tweet's text",
-        member="Whose avatar/name to use (defaults to you)",
-        theme="Light or dark mode",
-    )
-    async def fake_tweet(
-        self,
-        ctx: commands.Context,
-        text: str,
-        member: Optional[discord.User] = None,
-        theme: Literal["light", "dark"] = "light",
-    ):
+    async def fake_tweet(self, ctx: commands.Context, *, text: str):
         await ctx.defer()
+
+        theme = "light"
+        member: Optional[discord.User] = None
+        content = text.strip()
+
+        if ctx.message and ctx.message.mentions:
+            member = ctx.message.mentions[0]
+            content = content.replace(member.mention, " ")
+            content = " ".join(content.split())
+
+        tokens = content.split()
+        if tokens and tokens[-1].lower() in ("light", "dark"):
+            theme = tokens.pop().lower()
+            content = " ".join(tokens).strip()
+
+        if not content:
+            await ctx.send("❌ Please provide the tweet text.")
+            return
+
         user = self._resolve_user(ctx, member)
         a_q = self._enc(self._avatar_url(user))
         dn_q = self._enc(self._display_name(user))
         un_q = self._enc(user.name)
-        c_q = self._enc(text)
+        c_q = self._enc(content)
         url = (
             f"https://api.some-random-api.com/canvas/misc/tweet?displayname={dn_q}&username={un_q}&comment={c_q}&theme={theme}&avatar={a_q}"
         )
