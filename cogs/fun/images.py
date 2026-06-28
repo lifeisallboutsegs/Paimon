@@ -83,30 +83,41 @@ class FunImages(commands.Cog):
 
         try:
             with Image.open(io.BytesIO(data)) as im:
+                loop = im.info.get("loop", 0)
+                duration = im.info.get("duration", 100)
+                transparency = im.info.get("transparency")
+
                 frames = []
                 durations = []
-                loop = im.info.get("loop", 0)
+                disposals = []
                 for frame in ImageSequence.Iterator(im):
-                    frame = frame.convert("P")
-                    frames.append(frame)
-                    durations.append(frame.info.get("duration", im.info.get("duration", 100)))
+                    frame = frame.convert("RGBA")
+                    palette_frame = frame.convert("P", palette=Image.ADAPTIVE, colors=256)
+                    frames.append(palette_frame)
+                    durations.append(frame.info.get("duration", duration))
+                    disposals.append(frame.info.get("disposal", 2))
 
                 if not frames:
                     logger.warning("GIF optimization found no frames for %s", url)
                     return data
 
                 output = io.BytesIO()
-                frames[0].save(
-                    output,
-                    format="GIF",
-                    save_all=True,
-                    append_images=frames[1:],
-                    loop=loop,
-                    duration=durations,
-                    optimize=True,
-                    disposal=2,
-                )
-                return output.getvalue()
+                save_kwargs = {
+                    "format": "GIF",
+                    "save_all": True,
+                    "append_images": frames[1:],
+                    "loop": loop,
+                    "duration": durations,
+                    "optimize": True,
+                    "disposal": 2,
+                }
+                if transparency is not None:
+                    save_kwargs["transparency"] = transparency
+
+                frames[0].save(output, **save_kwargs)
+                optimized = output.getvalue()
+                logger.info("GIF optimized for Discord: %s -> %s bytes", url, len(optimized))
+                return optimized
         except Exception as e:
             logger.exception("GIF optimization failed for %s", url)
             return data
@@ -158,7 +169,9 @@ class FunImages(commands.Cog):
                     continue
 
                 if ext == "gif":
-                    data = self._optimize_gif(data, url)
+                    optimized = self._optimize_gif(data, url)
+                    if optimized is not None:
+                        data = optimized
 
                 base = filename
                 for known_ext in (".png", ".gif", ".jpg", ".jpeg", ".webp"):
@@ -388,7 +401,6 @@ class FunImages(commands.Cog):
             f"https://api.some-random-api.com/premium/amongus"
             f"?avatar={a_q}&username={u_q}&impostor={str(impostor).lower()}"
         )
-        logger.info("Generating Among Us animation for %s", user.display_name)
         await self._send_generated_image(ctx, url, "amongus.gif", "Among Us animation")
 
     @commands.hybrid_command(name="petpet", description="Generates a petpet gif of someone's avatar (premium)")
