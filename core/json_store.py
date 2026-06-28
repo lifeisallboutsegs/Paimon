@@ -35,7 +35,6 @@ class JSONDatabase:
             if not path.exists():
                 default = "[]" if path.name == "warnings.json" else "{}"
                 path.write_text(default, encoding="utf-8")
-
         logger.info("JSON datastore ready at %s", self.directory)
 
     async def close(self) -> None:
@@ -166,7 +165,6 @@ class JSONDatabase:
                     rows.append(
                         {"user_id": int(uid), "balance": entry.get("balance", 0)}
                     )
-
             rows.sort(key=lambda r: r["balance"], reverse=True)
             return rows[:limit]
 
@@ -182,7 +180,6 @@ class JSONDatabase:
                 last = datetime.fromisoformat(entry["last_xp_at"])
                 if (now - last).total_seconds() < cooldown_seconds:
                     return None
-
             xp = entry["xp"] + amount
             level = entry["level"]
             leveled_up = False
@@ -190,7 +187,6 @@ class JSONDatabase:
                 xp -= xp_for_level(level)
                 level += 1
                 leveled_up = True
-
             entry.update({"xp": xp, "level": level, "last_xp_at": now.isoformat()})
             data[key] = entry
             self._write("levels", data)
@@ -216,7 +212,6 @@ class JSONDatabase:
                             "level": entry["level"],
                         }
                     )
-
             rows.sort(key=lambda r: (r["level"], r["xp"]), reverse=True)
             return rows[:limit]
 

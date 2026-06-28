@@ -31,12 +31,10 @@ class Config:
     single_key = os.getenv("GROQ_API_KEY", "").strip()
     if single_key:
         GROQ_API_KEYS.append(single_key)
-
     for key in os.getenv("GROQ_API_KEYS", "").split(","):
         stripped = key.strip()
         if stripped and stripped not in GROQ_API_KEYS:
             GROQ_API_KEYS.append(stripped)
-
     OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "")
     GENIUS_ACCESS_TOKEN: str = os.getenv(
         "GENIUS_ACCESS_TOKEN",
@@ -53,6 +51,5 @@ class Config:
             raise RuntimeError(
                 "DISCORD_TOKEN is missing. Copy .env.example to .env and fill it in."
             )
-
         cls.SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
         cls.JSON_DIR.mkdir(parents=True, exist_ok=True)

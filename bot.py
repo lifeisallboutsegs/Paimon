@@ -17,23 +17,18 @@ async def main() -> None:
     if Config.DATABASE_BACKEND == "json":
         db = JSONDatabase(Config.JSON_DIR)
         logger.info("Using JSON database backend")
-
     else:
         db = Database(Config.SQLITE_PATH)
         logger.info("Using SQLite database backend")
-
     await db.connect()
     bot = Bot(db)
     try:
         await bot.start(Config.TOKEN)
-
     except (KeyboardInterrupt, asyncio.CancelledError):
         logger.info("Received shutdown signal. Closing bot...")
-
     finally:
         if not bot.is_closed():
             await bot.close()
-
         await db.close()
 
 

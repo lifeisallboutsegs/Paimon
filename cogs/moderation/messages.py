@@ -26,7 +26,6 @@ class ModerationMessages(commands.Cog):
             return await ctx.send(
                 f"❌ Invalid Amount\nAmount must be between 1 and 100."
             )
-
         deleted = await ctx.channel.purge(limit=amount + 1)
         msg = await ctx.send(
             f"✅ Messages Cleared\nDeleted {len(deleted) - 1} messages."

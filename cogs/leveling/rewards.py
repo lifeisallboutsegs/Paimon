@@ -19,7 +19,6 @@ class LevelingRewards(commands.Cog):
         data = await self.bot.db.kv_get(f"level_rewards:{guild_id}", "data")
         if data:
             return json.loads(data)
-
         return {}
 
     async def _save_rewards(self, guild_id: int, rewards: dict):
@@ -34,19 +33,15 @@ class LevelingRewards(commands.Cog):
             if not rewards:
                 await ctx.send("Level-Up Rewards: No rewards set up yet!")
                 return
-
             msg = ["🎁 Level-Up Rewards"]
             sorted_rewards = sorted(rewards.items(), key=lambda x: int(x[0]))
             for level, reward in sorted_rewards:
                 parts = []
                 if reward.get("role"):
                     parts.append(f"<@&{reward['role']}>")
-
                 if reward.get("coins", 0) > 0:
                     parts.append(f"{reward['coins']} coins")
-
                 msg.append(f"Level {level}: {' and '.join(parts)}")
-
             await ctx.send("\n".join(msg))
 
     @rewards.command(
@@ -64,38 +59,29 @@ class LevelingRewards(commands.Cog):
             try:
                 coins = int(arg)
                 continue
-
             except ValueError:
                 pass
-
             try:
                 role = await commands.RoleConverter().convert(ctx, arg)
-
             except commands.RoleNotFound:
                 await ctx.send(f"Error: '{arg}' is not a valid role!")
                 return
-
         if role is None and coins <= 0:
             await ctx.send("Error: You need to specify at least a role or coins!")
             return
-
         rewards = await self._get_rewards(ctx.guild.id)
         reward_data = {}
         if role:
             reward_data["role"] = role.id
-
         if coins > 0:
             reward_data["coins"] = coins
-
         rewards[str(level)] = reward_data
         await self._save_rewards(ctx.guild.id, rewards)
         parts = []
         if role:
             parts.append(role.mention)
-
         if coins > 0:
             parts.append(f"{coins} coins")
-
         await ctx.send(f"✅ Reward Added! Level {level}: {' and '.join(parts)}!")
 
     @rewards.app_command.command(name="add", description="Add a level-up reward!")
@@ -118,24 +104,19 @@ class LevelingRewards(commands.Cog):
         if role is None and coins <= 0:
             await ctx.send("Error: You need to specify at least a role or coins!")
             return
-
         rewards = await self._get_rewards(ctx.guild.id)
         reward_data = {}
         if role:
             reward_data["role"] = role.id
-
         if coins > 0:
             reward_data["coins"] = coins
-
         rewards[str(level)] = reward_data
         await self._save_rewards(ctx.guild.id, rewards)
         parts = []
         if role:
             parts.append(role.mention)
-
         if coins > 0:
             parts.append(f"{coins} coins")
-
         await ctx.send(f"✅ Reward Added! Level {level}: {' and '.join(parts)}!")
 
     @rewards.command(
@@ -152,7 +133,6 @@ class LevelingRewards(commands.Cog):
             del rewards[str(level)]
             await self._save_rewards(ctx.guild.id, rewards)
             await ctx.send(f"✅ Reward Removed! Removed reward from level {level}!")
-
         else:
             await ctx.send("Error: No reward set for that level!")
 

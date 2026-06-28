@@ -26,7 +26,6 @@ logger = logging.getLogger("bot.core")
 async def get_prefix(bot: "Bot", message: discord.Message):
     if message.guild is None:
         return [Config.PREFIX]
-
     guild_cfg = await bot.db.get_guild_config(message.guild.id)
     prefix = guild_cfg.get("prefix") or Config.PREFIX
     return [prefix]
@@ -61,13 +60,11 @@ class Bot(commands.Bot):
         for path in sorted(cogs_dir.rglob("*.py")):
             if path.stem.startswith("_"):
                 continue
-
             rel_path = path.relative_to(cogs_dir)
             extension = "cogs." + ".".join(rel_path.with_suffix("").parts)
             try:
                 await self.load_extension(extension)
                 logger.info("Loaded cog: %s", extension)
-
             except Exception:
                 logger.exception("Failed to load cog: %s", extension)
 
@@ -83,16 +80,13 @@ class Bot(commands.Bot):
             try:
                 with open("restart_info.json", "r") as f:
                     restart_info = json.load(f)
-
                 channel_id = restart_info["channel_id"]
                 start_time = restart_info["start_time"]
                 time_taken = round(time.time() - start_time, 2)
                 channel = self.get_channel(channel_id)
                 if channel:
                     await channel.send(f"✅ Restarted! Took {time_taken} seconds.")
-
                 os.remove("restart_info.json")
-
             except Exception as e:
                 logger.exception("Failed to send restart message: %s", e)
                 if os.path.exists("restart_info.json"):

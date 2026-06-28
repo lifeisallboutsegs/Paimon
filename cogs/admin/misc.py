@@ -24,12 +24,10 @@ class AdminMisc(commands.Cog):
     async def cog_check(self, ctx: commands.Context) -> bool:
         if await ctx.bot.is_owner(ctx.author):
             return True
-
         from config import Config
 
         if ctx.author.id in Config.OWNER_IDS:
             return True
-
         raise commands.NotOwner()
 
     @commands.command(name="sync")
@@ -37,10 +35,8 @@ class AdminMisc(commands.Cog):
         """Sync slash commands. scope: 'guild' (instant, this server only) or 'global' (~1hr to propagate)."""
         if scope == "guild" and ctx.guild:
             synced = await self.bot.tree.sync(guild=ctx.guild)
-
         else:
             synced = await self.bot.tree.sync()
-
         await ctx.send(f"Synced: {len(synced)} command(s) ({scope}).")
 
     @commands.command(name="shutdown")
@@ -54,7 +50,6 @@ class AdminMisc(commands.Cog):
         restart_info = {"channel_id": ctx.channel.id, "start_time": time.time()}
         with open("restart_info.json", "w") as f:
             json.dump(restart_info, f)
-
         await self.bot.close()
         os.execv(sys.executable, [sys.executable] + sys.argv)
 
@@ -100,13 +95,11 @@ class AdminMisc(commands.Cog):
         }
         if activity_type == "streaming":
             activity = discord.Streaming(name=text, url="https://twitch.tv/discord")
-
         else:
             activity = discord.Activity(
                 type=activity_map.get(activity_type, discord.ActivityType.watching),
                 name=text,
             )
-
         await self.bot.change_presence(
             status=status_map.get(status, discord.Status.online), activity=activity
         )

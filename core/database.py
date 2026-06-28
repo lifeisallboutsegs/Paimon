@@ -48,7 +48,6 @@ class Database:
             try:
                 await self._conn.execute(stmt)
                 await self._conn.commit()
-
             except Exception as exc:
                 if "duplicate column" not in str(exc).lower():
                     logger.warning("Migration skipped (%s): %s", stmt, exc)
@@ -85,7 +84,6 @@ class Database:
                 "log_channel": None,
                 "mod_role": None,
             }
-
         return dict(row)
 
     async def set_guild_config(self, guild_id: int, **fields) -> None:
@@ -95,7 +93,6 @@ class Database:
         )
         if not fields:
             return
-
         columns = ", ".join((f"{k} = ?" for k in fields))
         await self.execute(
             f"UPDATE guild_configs SET {columns} WHERE guild_id = ?",
@@ -190,7 +187,6 @@ class Database:
             last = datetime.fromisoformat(row["last_xp_at"])
             if (now - last).total_seconds() < cooldown_seconds:
                 return None
-
         xp = (row["xp"] if row else 0) + amount
         level = row["level"] if row else 0
         leveled_up = False
@@ -198,7 +194,6 @@ class Database:
             xp -= xp_for_level(level)
             level += 1
             leveled_up = True
-
         await self.execute(
             "INSERT INTO levels (guild_id, user_id, xp, level, last_xp_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(guild_id, user_id) DO UPDATE SET xp = ?, level = ?, last_xp_at = ?",
             (guild_id, user_id, xp, level, now.isoformat(), xp, level, now.isoformat()),

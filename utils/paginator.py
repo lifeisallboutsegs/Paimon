@@ -11,7 +11,6 @@ class Paginator(discord.ui.View):
         self.index = 0
         for i, embed in enumerate(self.embeds):
             embed.set_footer(text=f"Page {i + 1}/{len(self.embeds)}")
-
         if len(embeds) <= 1:
             self.clear_items()
 
@@ -21,7 +20,6 @@ class Paginator(discord.ui.View):
                 "This isn't your menu.", ephemeral=True
             )
             return False
-
         return True
 
     @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary)
@@ -39,6 +37,5 @@ class Paginator(discord.ui.View):
     async def start(self, ctx) -> None:
         if hasattr(ctx, "send"):
             await ctx.send(embed=self.embeds[0], view=self)
-
         else:
             await ctx.send(embed=self.embeds[0], view=self)

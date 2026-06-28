@@ -16,12 +16,10 @@ class AdminStaff(commands.Cog):
     async def cog_check(self, ctx: commands.Context) -> bool:
         if await ctx.bot.is_owner(ctx.author):
             return True
-
         from config import Config
 
         if ctx.author.id in Config.OWNER_IDS:
             return True
-
         raise commands.NotOwner()
 
     @commands.hybrid_group(name="botadmin", description="Manage bot admins")
@@ -37,7 +35,6 @@ class AdminStaff(commands.Cog):
         if member.id in admins:
             await ctx.send("This user is already a bot admin!")
             return
-
         admins.add(member.id)
         await self.bot.db.kv_set("bot_admins", "list", ",".join(map(str, admins)))
         await ctx.send(f"Added {member.mention} as bot admin!")
@@ -50,7 +47,6 @@ class AdminStaff(commands.Cog):
         if member.id not in admins:
             await ctx.send("This user is not a bot admin!")
             return
-
         admins.remove(member.id)
         await self.bot.db.kv_set("bot_admins", "list", ",".join(map(str, admins)))
         await ctx.send(f"Removed {member.mention} as bot admin!")
@@ -62,16 +58,13 @@ class AdminStaff(commands.Cog):
         if not admins:
             await ctx.send("No bot admins configured!")
             return
-
         mentions = []
         for uid in admins:
             user = self.bot.get_user(uid)
             if user:
                 mentions.append(user.mention)
-
             else:
                 mentions.append(f"Unknown User ({uid})")
-
         await ctx.send("\n".join(mentions))
 
     @commands.hybrid_group(name="botmod", description="Manage bot moderators")
@@ -87,7 +80,6 @@ class AdminStaff(commands.Cog):
         if member.id in mods:
             await ctx.send("This user is already a bot moderator!")
             return
-
         mods.add(member.id)
         await self.bot.db.kv_set("bot_mods", "list", ",".join(map(str, mods)))
         await ctx.send(f"Added {member.mention} as bot moderator!")
@@ -100,7 +92,6 @@ class AdminStaff(commands.Cog):
         if member.id not in mods:
             await ctx.send("This user is not a bot moderator!")
             return
-
         mods.remove(member.id)
         await self.bot.db.kv_set("bot_mods", "list", ",".join(map(str, mods)))
         await ctx.send(f"Removed {member.mention} as bot moderator!")
@@ -112,16 +103,13 @@ class AdminStaff(commands.Cog):
         if not mods:
             await ctx.send("No bot moderators configured!")
             return
-
         mentions = []
         for uid in mods:
             user = self.bot.get_user(uid)
             if user:
                 mentions.append(user.mention)
-
             else:
                 mentions.append(f"Unknown User ({uid})")
-
         await ctx.send("\n".join(mentions))
 
 

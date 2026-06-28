@@ -12,7 +12,6 @@ def parse_duration(text: str) -> int | None:
     matches = _DURATION_RE.findall(text.lower())
     if not matches:
         return None
-
     return sum((int(value) * _UNIT_SECONDS[unit] for value, unit in matches))
 
 
@@ -33,5 +32,4 @@ def human_timedelta_seconds(seconds: int) -> str:
         value, seconds = divmod(seconds, length)
         if value:
             parts.append(f"{value} {name}{('s' if value != 1 else '')}")
-
     return ", ".join(parts) if parts else "0 seconds"

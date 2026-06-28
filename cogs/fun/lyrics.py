@@ -38,7 +38,6 @@ class Lyrics(commands.Cog):
     def _get_http_session(self):
         if self.http_session is None or self.http_session.closed:
             self.http_session = aiohttp.ClientSession()
-
         return self.http_session
 
     async def fetch_image(self, url: str):
@@ -48,10 +47,8 @@ class Lyrics(commands.Cog):
                 if resp.status == 200:
                     data = await resp.read()
                     return data
-
         except Exception:
             logger.exception("Failed to fetch image: %s", url)
-
         return None
 
     async def search_songs(self, query: str):
@@ -74,40 +71,31 @@ class Lyrics(commands.Cog):
                 if resp.status != 200:
                     logger.error("Non-200 response (%s) for %s", resp.status, song_url)
                     return None
-
                 html = await resp.text()
-
         except Exception:
             logger.exception("Network error while fetching %s", song_url)
             return None
-
         soup = BeautifulSoup(html, "html.parser")
         containers = soup.find_all("div", attrs={"data-lyrics-container": "true"})
         if not containers:
             logger.warning("No [data-lyrics-container] found at %s", song_url)
             containers = soup.find_all("div", class_=re.compile("Lyrics__Container"))
-
         if not containers:
             logger.warning("No lyrics containers at all for %s", song_url)
             return None
-
         parts = []
         for container in containers:
             for excluded in container.find_all(
                 "div", attrs={"data-exclude-from-selection": "true"}
             ):
                 excluded.decompose()
-
             for a_tag in container.find_all("a"):
                 a_tag.unwrap()
-
             for br in container.find_all("br"):
                 br.replace_with("\n")
-
             text = container.get_text(separator="").strip()
             if text:
                 parts.append(text)
-
         lyrics = re.sub("\\n{3,}", "\n\n", "\n\n".join(parts)).strip()
         logger.info("Scraped %d chars from %s", len(lyrics), song_url)
         return lyrics or None
@@ -118,16 +106,13 @@ class Lyrics(commands.Cog):
         await ctx.defer()
         try:
             hits = await self.search_songs(query)
-
         except Exception:
             logger.exception("search_songs failed for query %r", query)
             await ctx.send("❌ An error occurred while searching. Check logs.")
             return
-
         if not hits:
             await ctx.send("❌ Couldn't find any songs for that query!")
             return
-
         options = []
         lines = []
         image_files = []
@@ -147,7 +132,6 @@ class Lyrics(commands.Cog):
                 image_files.append(
                     discord.File(io.BytesIO(img_data), filename=f"song_{i + 1}.jpg")
                 )
-
         cog_ref = self
 
         class SongSelect(discord.ui.View):
@@ -171,13 +155,11 @@ class Lyrics(commands.Cog):
                         "❌ This is not your menu!", ephemeral=True
                     )
                     return
-
                 await interaction.response.defer()
                 index = int(select.values[0])
                 result = self.hits[index]["result"]
                 try:
                     lyrics = await cog_ref.scrape_lyrics(result["url"])
-
                 except Exception:
                     logger.exception("scrape_lyrics raised for %s", result["url"])
                     await interaction.followup.send(
@@ -185,7 +167,6 @@ class Lyrics(commands.Cog):
                     )
                     self.stop()
                     return
-
                 if not lyrics:
                     await interaction.followup.send(
                         f"❌ Couldn't scrape lyrics for **{result['title']}**.\nTry the page directly: {result['url']}",
@@ -193,7 +174,6 @@ class Lyrics(commands.Cog):
                     )
                     self.stop()
                     return
-
                 header = f"🎵 **{result['title']}** by {result['primary_artist']['name']}\n{result['url']}\n\n"
                 full_text = header + lyrics
                 chunks = []
@@ -201,10 +181,8 @@ class Lyrics(commands.Cog):
                     split_at = full_text.rfind("\n", 0, 2000)
                     if split_at == -1:
                         split_at = 2000
-
                     chunks.append(full_text[:split_at])
                     full_text = full_text[split_at:].lstrip("\n")
-
                 chunks.append(full_text)
                 art_data = await cog_ref.fetch_image(
                     result.get("song_art_image_url", "")
@@ -221,7 +199,6 @@ class Lyrics(commands.Cog):
                 )
                 for chunk in chunks[1:]:
                     await interaction.followup.send(chunk)
-
                 self.stop()
 
             async def on_timeout(self):
@@ -230,7 +207,6 @@ class Lyrics(commands.Cog):
                         await self.message.edit(
                             content="⏰ Selection timed out.", view=None
                         )
-
                     except discord.NotFound:
                         pass
 

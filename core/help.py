@@ -32,12 +32,10 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
         """Get the user-friendly category for a cog!"""
         if cog is None:
             return "Commands"
-
         cog_name = cog.qualified_name.lower()
         for key, category in self.CATEGORY_MAP.items():
             if key in cog_name:
                 return category
-
         return "Commands"
 
     async def send_bot_help(self, mapping):
@@ -49,21 +47,17 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
             if filtered:
                 if category not in category_commands:
                     category_commands[category] = []
-
                 category_commands[category].extend(filtered)
-
         destination = self.get_destination()
         help_text = []
         if self.context.bot.description:
             help_text.append(self.context.bot.description)
             help_text.append("")
-
         for category in sorted(category_commands.keys()):
             help_text.append(f"**{category}:**")
             cmd_names = [cmd.name for cmd in category_commands[category]]
             help_text.append(f"  `{'`, `'.join(cmd_names)}`")
             help_text.append("")
-
         await destination.send("\n".join(help_text))
 
     async def send_cog_help(self, cog):
@@ -74,7 +68,6 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
         help_text.append(f"**{category} - {cog.qualified_name}**")
         if cog.description:
             help_text.append(cog.description)
-
         help_text.append("")
         filtered = await self.filter_commands(cog.get_commands(), sort=True)
         if filtered:
@@ -85,10 +78,8 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                 )
                 if cmd.aliases:
                     help_text.append(f"  Aliases: `{'`, `'.join(cmd.aliases)}`")
-
         else:
             help_text.append("No commands available for this cog.")
-
         await destination.send("\n".join(help_text))
 
     def get_command_path(self, command):
@@ -98,7 +89,6 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
         while current:
             path.insert(0, current.name)
             current = current.parent
-
         return path
 
     async def send_group_help(self, group):
@@ -109,11 +99,9 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
         help_text.append(f"**{cmd_path}**")
         if group.description:
             help_text.append(group.description)
-
         if group.help:
             help_text.append("")
             help_text.append(group.help)
-
         help_text.append("")
         filtered = await self.filter_commands(group.commands, sort=True)
         if filtered:
@@ -124,15 +112,12 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                 help_text.append(f"**{subcmd_path}**")
                 if cmd.description:
                     help_text.append(cmd.description)
-
                 if cmd.aliases:
                     help_text.append(f"Aliases: `{'`, `'.join(cmd.aliases)}`")
-
                 if cmd.usage:
                     help_text.append(
                         f"Usage: `{self.context.clean_prefix}{subcmd_path} {cmd.usage}`"
                     )
-
                 elif cmd.signature:
                     help_text.append(
                         f"Usage: `{self.context.clean_prefix}{subcmd_path} {cmd.signature}`"
@@ -152,14 +137,12 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                                     else False
                                 ),
                             }
-
                     if cmd.params:
                         help_text.append("")
                         help_text.append("**Parameters:**")
                         for name, param in cmd.params.items():
                             if name == "self" or name == "ctx":
                                 continue
-
                             desc_info = param_descs.get(
                                 name,
                                 {"desc": "No description", "required": param.required},
@@ -168,30 +151,23 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                             param_str = f"  `{name}`: {desc_info['desc']}"
                             if is_required:
                                 param_str += " (required)"
-
                             else:
                                 param_str += " (optional)"
-
                             help_text.append(param_str)
-
                 if cmd.help:
                     help_text.append("")
                     help_text.append(cmd.help)
-
                 help_text.append("")
                 help_text.append("---")
                 help_text.append("")
-
         else:
             help_text.append("No subcommands available for this group.")
-
         await destination.send("\n".join(help_text))
 
     async def send_command_help(self, command):
         """Send help for a specific command! If it's a subcommand, send group help instead!"""
         if command.parent:
             await self.send_group_help(command.parent)
-
         else:
             destination = self.get_destination()
             help_text = []
@@ -199,15 +175,12 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
             help_text.append(f"**{cmd_path}**")
             if command.description:
                 help_text.append(command.description)
-
             if command.aliases:
                 help_text.append(f"Aliases: `{'`, `'.join(command.aliases)}`")
-
             if command.usage:
                 help_text.append(
                     f"Usage: `{self.context.clean_prefix}{cmd_path} {command.usage}`"
                 )
-
             elif command.signature:
                 help_text.append(
                     f"Usage: `{self.context.clean_prefix}{cmd_path} {command.signature}`"
@@ -225,14 +198,12 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                                 param.required if hasattr(param, "required") else False
                             ),
                         }
-
                 if command.params:
                     help_text.append("")
                     help_text.append("**Parameters:**")
                     for name, param in command.params.items():
                         if name == "self" or name == "ctx":
                             continue
-
                         desc_info = param_descs.get(
                             name, {"desc": "No description", "required": param.required}
                         )
@@ -240,14 +211,10 @@ class CustomHelpCommand(commands.DefaultHelpCommand):
                         param_str = f"  `{name}`: {desc_info['desc']}"
                         if is_required:
                             param_str += " (required)"
-
                         else:
                             param_str += " (optional)"
-
                         help_text.append(param_str)
-
             if command.help:
                 help_text.append("")
                 help_text.append(command.help)
-
             await destination.send("\n".join(help_text))

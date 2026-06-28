@@ -21,7 +21,6 @@ class ModerationMisc(commands.Cog):
         await ctx.channel.edit(slowmode_delay=seconds)
         if seconds == 0:
             await ctx.send("✅ Slowmode Disabled: Slowmode has been turned off!")
-
         else:
             await ctx.send(f"✅ Slowmode Set: Slowmode set to {seconds} seconds!")
 
@@ -40,28 +39,23 @@ class ModerationMisc(commands.Cog):
                 f"❌ Error: I can't change {member.mention}'s nickname because their role is higher than or equal to mine!"
             )
             return
-
         if member.id == ctx.guild.owner_id and ctx.guild.me.id != ctx.guild.owner_id:
             await ctx.send(f"❌ Error: I can't change the server owner's nickname!")
             return
-
         try:
             await member.edit(nick=nickname)
             if nickname:
                 await ctx.send(
                     f"✅ Nickname Changed: Changed {member.mention}'s nickname to {nickname}!"
                 )
-
             else:
                 await ctx.send(
                     f"✅ Nickname Removed: Removed {member.mention}'s nickname!"
                 )
-
         except discord.Forbidden:
             await ctx.send(
                 f"❌ Error: I don't have permission to change {member.mention}'s nickname!"
             )
-
         except discord.HTTPException as e:
             await ctx.send(f"❌ Error: Failed to change nickname - {e}")
 

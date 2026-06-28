@@ -35,7 +35,6 @@ class FunMisc(commands.Cog):
         if min_num > max_num:
             await ctx.send("❌ Error\nMinimum number can't be bigger than maximum!")
             return
-
         await ctx.send(
             f"ℹ️ Random Number\nYour random number: {random.randint(min_num, max_num)}"
         )
@@ -47,7 +46,6 @@ class FunMisc(commands.Cog):
         if len(option_list) < 2:
             await ctx.send("❌ Error\nPlease give at least 2 options!")
             return
-
         await ctx.send(f"ℹ️ I choose...\n**{random.choice(option_list)}**!")
 
 

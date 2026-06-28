@@ -22,9 +22,7 @@ class FunImages(commands.Cog):
             async with self.session.get(url) as resp:
                 if json:
                     return await resp.json()
-
                 return await resp.text()
-
         except Exception as e:
             print(f"API fetch error: {e}")
             return None
@@ -35,7 +33,6 @@ class FunImages(commands.Cog):
         if data and len(data) > 0:
             await ctx.send("ℹ️ Random Cat")
             await ctx.send(data[0]["url"])
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a cat picture!")
 
@@ -45,7 +42,6 @@ class FunImages(commands.Cog):
         if data and len(data) > 0:
             await ctx.send("ℹ️ Random Dog")
             await ctx.send(data[0]["url"])
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a dog picture!")
 
@@ -55,7 +51,6 @@ class FunImages(commands.Cog):
         if data:
             await ctx.send(f"ℹ️ Meme: {data['title']}\nr/{data['subreddit']}")
             await ctx.send(data["url"])
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a meme!")
 
@@ -65,7 +60,6 @@ class FunImages(commands.Cog):
         if data:
             await ctx.send("ℹ️ Random Fox")
             await ctx.send(data["image"])
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a fox picture!")
 
@@ -75,7 +69,6 @@ class FunImages(commands.Cog):
         if data:
             await ctx.send("ℹ️ Random Duck")
             await ctx.send(data["url"])
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a duck picture!")
 
@@ -84,7 +77,6 @@ class FunImages(commands.Cog):
         data = await self._fetch("https://api.quotable.io/random")
         if data:
             await ctx.send(f"""ℹ️ Quote\n"{data['content']}"\n\n- {data['author']}""")
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get a quote!")
 
@@ -99,14 +91,12 @@ class FunImages(commands.Cog):
         if not Config.OPENWEATHER_API_KEY:
             await ctx.send("❌ Oops!\nSet OPENWEATHER_API_KEY in your .env first!")
             return
-
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&units=metric&appid={Config.OPENWEATHER_API_KEY}"
         data = await self._fetch(url)
         if data and data.get("cod") == 200:
             await ctx.send(
                 f"ℹ️ Weather in {data['name']}, {data['sys']['country']}\nTemperature: {data['main']['temp']}°C\nFeels like: {data['main']['feels_like']}°C\nDescription: {data['weather'][0]['description'].capitalize()}\nHumidity: {data['main']['humidity']}%\nWind speed: {data['wind']['speed']} m/s"
             )
-
         else:
             await ctx.send("❌ Oops!\nCouldn't get weather info!")
 

@@ -20,11 +20,9 @@ class FunGames(commands.Cog):
         if choice not in ["rock", "paper", "scissors"]:
             await ctx.send("❌ Invalid Choice\nChoose rock, paper, or scissors!")
             return
-
         bot_choice = random.choice(["rock", "paper", "scissors"])
         if choice == bot_choice:
             result = "It's a tie!"
-
         elif (
             choice == "rock"
             and bot_choice == "scissors"
@@ -32,10 +30,8 @@ class FunGames(commands.Cog):
             or (choice == "scissors" and bot_choice == "paper")
         ):
             result = "You win!"
-
         else:
             result = "You lose!"
-
         await ctx.send(
             f"ℹ️ Rock-Paper-Scissors\nYou chose: **{choice}**\nBot chose: **{bot_choice}**\n\n{result}"
         )
