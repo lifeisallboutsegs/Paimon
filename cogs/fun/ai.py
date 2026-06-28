@@ -609,19 +609,12 @@ class FunAI(commands.Cog):
 
     def _should_reply(self, message: discord.Message, bot_mentioned: bool) -> bool:
         guild_id = message.guild.id
-        now = time.time()
-        elapsed = now - self.last_reply[guild_id]
         msg_count = self.message_since_last_reply[guild_id]
         if bot_mentioned:
             return True
-        if elapsed < 10:
-            return False
-        if msg_count < 3:
-            return False
-        if elapsed > 120:
+        if msg_count >= 20:
             return True
-        chance = min(0.5, (msg_count - 2) * 0.1)
-        return random.random() < chance
+        return False
 
     def _build_context_string(self, guild_id: int, user_id: int = None) -> str:
         lines = []
@@ -638,13 +631,19 @@ class FunAI(commands.Cog):
                 lines.append('---\n')
         guild_context = list(self.context_store[guild_id])
         if guild_context:
-            lines.append('--- RECENT SERVER CHAT (format: DisplayName (ID:userid) said: message) ---')
+            lines.append('--- RECENT SERVER CHAT ---')
+            msg_map = {m['message_id']: m for m in guild_context if m['message_id']}
             for msg in guild_context:
                 if msg['is_bot']:
                     prefix = f'you ({self.bot.user.display_name}) said'
                 else:
                     prefix = f"{msg['author_name']} (ID:{msg['author_id']}) said"
-                lines.append(f"{prefix}: {msg['content']}")
+                if msg.get('reply_to_id') and msg['reply_to_id'] in msg_map:
+                    replied_to = msg_map[msg['reply_to_id']]
+                    replied_author = replied_to['author_name'] if not replied_to['is_bot'] else f"you ({self.bot.user.display_name})"
+                    lines.append(f"{prefix} [in reply to {replied_author}]: {msg['content']}")
+                else:
+                    lines.append(f"{prefix}: {msg['content']}")
             lines.append('--- END OF SERVER CHAT ---')
         return '\n'.join(lines)
 
@@ -716,24 +715,22 @@ class FunAI(commands.Cog):
         if len(message.content.strip()) < 2:
             return
         guild_id = message.guild.id
-        bot_mentioned = self.bot.user in message.mentions
+        bot_mentioned = self.bot.user in message.mentions or self.bot.user.display_name.lower() in message.content.lower()
         is_command = await self._is_command(message)
         if is_command:
             return
 
         readable_content = self._resolve_mentions_in_message(message)
 
-        mentioned_users_info = ''
         non_bot_mentions = [u for u in message.mentions if not u.bot and u.id != self.bot.user.id]
-        if non_bot_mentions:
-            mentioned_parts = [f'{u.display_name} (ID:{u.id})' for u in non_bot_mentions]
-            mentioned_users_info = f'[This message mentions: {", ".join(mentioned_parts)} — these are OTHER users being talked about/to, NOT you]'
 
         self.context_store[guild_id].append({
+            'message_id': message.id,
             'author_id': message.author.id,
             'author_name': message.author.display_name,
             'content': readable_content,
-            'is_bot': False
+            'is_bot': False,
+            'reply_to_id': message.reference.message_id if message.reference and message.reference.message_id else None
         })
         self.user_memory_recent[message.author.id].append({'role': 'user', 'content': readable_content})
         self.message_since_last_reply[guild_id] += 1
@@ -795,17 +792,22 @@ ABOUT YOU
 - Custom Server Emojis: {emoji_str}
 
 WHO IS TALKING TO YOU RIGHT NOW
-- {message.author.display_name} (ID: {message.author.id}) is the one talking to YOU
+- {message.author.display_name} (ID: {message.author.id}) is the one talking
 - Familiarity with them: {familiarity_note}
 
 CRITICAL — UNDERSTANDING WHO IS WHO IN CHAT
 When you see the server chat history, each line is labeled as:
   "DisplayName (ID:userid) said: [their message]"
+  "DisplayName (ID:userid) said [in reply to AnotherName]: [their message]"
   "you (YourName) said: [your reply]"
 
-This tells you EXACTLY who said what. Do not confuse other users' messages as being directed at you unless they actually mention you or your name.
+This tells you EXACTLY who said what and who they're replying to.
 
-If someone says "@shahryar how are you doing?" — they are talking TO shahryar, NOT to you. Only respond if it makes sense for you to chime in naturally, or if you were actually mentioned.
+IMPORTANT: WHEN TO REPLY
+- You MUST reply if you are mentioned by ping or name
+- Otherwise, ONLY reply if you can make a genuinely FUNNY, SAVAGE, or TROLL comment based on the FULL CONVERSATION CONTEXT
+- If you don't have a good joke/savage/troll comment, reply with [NO_REPLY]
+- If the conversation is serious, or you don't have anything to add, reply with [NO_REPLY]
 
 IMPORTANT: CUSTOM EMOJI RULES (READ THIS CAREFULLY):
 - WHEN USING CUSTOM EMOJIS FROM THE LIST, COPY THEM EXACTLY AS THEY APPEAR!
@@ -1112,7 +1114,14 @@ GENERAL RULES
                         self.last_reply[guild_id] = time.time()
                         self.message_since_last_reply[guild_id] = 0
                         if reply_text and len(reply_text) <= 1900:
-                            self.context_store[guild_id].append({'author_id': self.bot.user.id, 'author_name': self.bot.user.display_name, 'content': reply_text, 'is_bot': True})
+                            self.context_store[guild_id].append({
+                                'message_id': None,
+                                'author_id': self.bot.user.id,
+                                'author_name': self.bot.user.display_name,
+                                'content': reply_text,
+                                'is_bot': True,
+                                'reply_to_id': message.id
+                            })
                             self.user_memory_recent[message.author.id].append({'role': 'assistant', 'content': reply_text})
                     except discord.Forbidden:
                         pass
