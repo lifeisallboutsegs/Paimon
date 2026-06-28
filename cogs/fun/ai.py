@@ -43,28 +43,6 @@ def _find_best_match(query: str, candidates: list[str], threshold: float = 0.6) 
             best_match = candidate
     return best_match
 
-def _sanitize_emoji(text: str) -> str:
-    result = text
-
-    animated_pattern = re.compile(r'<a:[a-zA-Z0-9_]+:\d+>')
-    static_pattern = re.compile(r'<:[a-zA-Z0-9_]+:\d+>')
-
-    valid_positions = set()
-    for m in animated_pattern.finditer(result):
-        for i in range(m.start(), m.end()):
-            valid_positions.add(i)
-    for m in static_pattern.finditer(result):
-        for i in range(m.start(), m.end()):
-            valid_positions.add(i)
-
-    broken_pattern = re.compile(r'<[^>]{1,60}:\d{10,20}>')
-    cleaned = broken_pattern.sub(lambda m: m.group() if all(i in valid_positions for i in range(m.start(), m.end())) else '', result)
-
-    name_only_pattern = re.compile(r'(?<![<:a]):[a-zA-Z0-9_]{2,32}:(?!\d)')
-    cleaned = name_only_pattern.sub(lambda m: m.group(), cleaned)
-
-    return cleaned
-
 def _sanitize_custom_emoji(text: str) -> str:
     valid_animated = re.compile(r'<a:[a-zA-Z0-9_]+:\d+>')
     valid_static = re.compile(r'<:[a-zA-Z0-9_]+:\d+>')
@@ -680,22 +658,28 @@ class FunAI(commands.Cog):
         return (delay_seconds, send_type, text, reaction_emoji)
 
     def _parse_old_function_syntax(self, text: str):
-        pattern = r'<function=([a-zA-Z0-9_]+)(?:\{(.*?)\})?>(?:</function>)?'
-        matches = re.findall(pattern, text)
         results = []
-        for func_name, args_str in matches:
-            if not func_name:
-                continue
-            args_str = args_str.strip() if args_str else ''
-            if not args_str:
+        # First extract all <function=...> tags
+        func_tag_pattern = r'<function=([^>]+)>(?:</function>)?'
+        all_func_tags = re.findall(func_tag_pattern, text)
+        
+        for tag_content in all_func_tags:
+            # Split into function name and args
+            if '{' in tag_content:
+                func_name_part, args_part = tag_content.split('{', 1)
+                func_name = func_name_part.strip()
+                args_str = '{' + args_part.strip()
+            else:
+                func_name = tag_content.strip()
                 args_str = '{}'
-            if args_str.startswith('{') and args_str.endswith('}'):
+            
+            if args_str == '{}':
+                args = {}
+            else:
                 try:
                     args = json.loads(args_str)
                 except json.JSONDecodeError:
                     args = {}
-            else:
-                args = {}
             results.append((func_name, args))
         return results
 
@@ -768,7 +752,6 @@ class FunAI(commands.Cog):
                         emoji_str = f'<:{emoji.name}:{emoji.id}>'
                     emoji_list.append(emoji_str)
                     emoji_map[emoji.name.lower()] = emoji_str
-                self.current_emoji_map = emoji_map
                 emoji_str = ', '.join(emoji_list[:50]) if emoji_list else 'None'
 
                 current_message_context = f'[CURRENT MESSAGE] {message.author.display_name} (ID:{message.author.id}) is talking TO YOU'
