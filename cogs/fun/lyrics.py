@@ -9,7 +9,7 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
-PROXY_URL = "http://100.89.113.40:8118"
+PROXY_URL = "http://100.89.113.40:8080"
 
 
 class Lyrics(commands.Cog):
