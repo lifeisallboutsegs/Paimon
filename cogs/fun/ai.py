@@ -1900,3 +1900,7 @@ class FunAI(commands.Cog):
                 await ctx.send(f"no urban dictionary definition found for '{term}'")
         except Exception:
             await ctx.send("urban dictionary lookup failed")
+
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(FunAI(bot))
