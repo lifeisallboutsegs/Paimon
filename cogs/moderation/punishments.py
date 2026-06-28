@@ -7,6 +7,7 @@ from utils.checks import mod_role_or_permission
 
 
 class ModerationPunishments(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

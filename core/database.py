@@ -1,21 +1,16 @@
 from __future__ import annotations
-
 import logging
-
 from datetime import datetime, timezone
-
 from pathlib import Path
-
 from typing import Any, Iterable
-
 import aiosqlite
-
 from utils.helpers import xp_for_level
 
 logger = logging.getLogger("bot.database")
 
 
 class Database:
+
     def __init__(self, path: Path):
         self.path = path
         self._conn: aiosqlite.Connection | None = None

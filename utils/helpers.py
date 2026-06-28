@@ -1,9 +1,7 @@
 import re
-
 from datetime import datetime, timezone
 
 _DURATION_RE = re.compile("(\\d+)([smhdw])")
-
 _UNIT_SECONDS = {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}
 
 

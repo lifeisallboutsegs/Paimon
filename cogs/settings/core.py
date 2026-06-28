@@ -5,6 +5,7 @@ from utils.checks import is_owner_or_admin
 
 
 class SettingsCore(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
@@ -20,11 +21,9 @@ class SettingsCore(commands.Cog):
             f"<#{cfg['log_channel']}>" if cfg.get("log_channel") else "Not set"
         )
         mod_role = f"<@&{cfg['mod_role']}>" if cfg.get("mod_role") else "Not set"
-        await ctx.send(f"""**Server Configuration**
-- Prefix: {cfg.get("prefix") or "(default)"}
-- Welcome Channel: {welcome_channel}
-- Log Channel: {log_channel}
-- Mod Role: {mod_role}""")
+        await ctx.send(
+            f"**Server Configuration**\n- Prefix: {cfg.get('prefix') or '(default)'}\n- Welcome Channel: {welcome_channel}\n- Log Channel: {log_channel}\n- Mod Role: {mod_role}"
+        )
 
     @config.command(
         name="prefix", description="Set a custom command prefix for this server."

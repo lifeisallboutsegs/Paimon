@@ -1,10 +1,6 @@
 import time
-
 import platform
-
 import discord
-
-
 from discord.ext import commands
 
 

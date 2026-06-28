@@ -1,23 +1,13 @@
 from __future__ import annotations
-
 import logging
-
 import json
-
 import time
-
 import os
-
 from pathlib import Path
-
 import discord
-
 from discord.ext import commands
-
 from config import Config
-
 from core.help import CustomHelpCommand
-
 from core.watcher import CogWatcher
 
 logger = logging.getLogger("bot.core")
@@ -32,6 +22,7 @@ async def get_prefix(bot: "Bot", message: discord.Message):
 
 
 class Bot(commands.Bot):
+
     def __init__(self, db):
         intents = discord.Intents.default()
         intents.message_content = True

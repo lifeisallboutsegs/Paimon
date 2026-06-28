@@ -1,11 +1,8 @@
 import discord
 
 COLOR_SUCCESS = discord.Color.green()
-
 COLOR_ERROR = discord.Color.red()
-
 COLOR_WARNING = discord.Color.orange()
-
 COLOR_INFO = discord.Color.blurple()
 
 

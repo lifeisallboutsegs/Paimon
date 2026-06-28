@@ -1,15 +1,9 @@
 import discord
-
 import os
-
 import sys
-
 import json
-
 import time
-
 from discord import app_commands
-
 from discord.ext import commands
 
 

@@ -1,17 +1,10 @@
 import asyncio
-
 import logging
-
 import time
-
 from pathlib import Path
-
 from typing import Optional
-
 from discord.ext import commands
-
 from watchdog.observers import Observer
-
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 logger = logging.getLogger("bot.watcher")

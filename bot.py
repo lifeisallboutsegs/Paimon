@@ -1,13 +1,8 @@
 import asyncio
-
 from config import Config
-
 from core.bot import Bot
-
 from core.database import Database
-
 from core.json_store import JSONDatabase
-
 from core.logger import setup_logging
 
 

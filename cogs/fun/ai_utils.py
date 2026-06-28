@@ -1,5 +1,4 @@
 import re
-
 import json
 
 
@@ -40,9 +39,9 @@ def find_best_match(
 
 
 _MENTION_PATTERNS = [
-    re.compile(r"^<@!?\d+>$"),
-    re.compile(r"^<@&\d+>$"),
-    re.compile(r"^<#\d+>$"),
+    re.compile("^<@!?\\d+>$"),
+    re.compile("^<@&\\d+>$"),
+    re.compile("^<#\\d+>$"),
 ]
 
 
@@ -65,7 +64,7 @@ def sanitize_custom_emoji(text: str) -> str:
         content = m.group()
         if valid_animated.fullmatch(content) or valid_static.fullmatch(content):
             return content
-        if any(p.fullmatch(content) for p in _MENTION_PATTERNS):
+        if any((p.fullmatch(content) for p in _MENTION_PATTERNS)):
             return content
         return ""
 

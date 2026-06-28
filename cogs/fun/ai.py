@@ -31,6 +31,7 @@ MEM_RECENT_NS = "ai_memory_recent"
 
 
 class FunAI(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.key_index = 0
@@ -145,7 +146,7 @@ class FunAI(commands.Cog):
             except (asyncio.TimeoutError, aiohttp.ClientError) as e:
                 last_exc = e
             if attempt < retries:
-                await asyncio.sleep(base_delay * (2**attempt))
+                await asyncio.sleep(base_delay * 2**attempt)
         if last_exc:
             raise last_exc
         return None
@@ -341,10 +342,8 @@ class FunAI(commands.Cog):
                 target_channel = None
                 if best_channel_name:
                     target_channel = discord.utils.find(
-                        lambda c: (
-                            isinstance(c, discord.TextChannel)
-                            and c.name == best_channel_name
-                        ),
+                        lambda c: isinstance(c, discord.TextChannel)
+                        and c.name == best_channel_name,
                         guild.channels,
                     )
                 if not target_channel:
@@ -452,10 +451,8 @@ class FunAI(commands.Cog):
                 target = None
                 if best_channel_name:
                     target = discord.utils.find(
-                        lambda c: (
-                            isinstance(c, discord.TextChannel)
-                            and c.name == best_channel_name
-                        ),
+                        lambda c: isinstance(c, discord.TextChannel)
+                        and c.name == best_channel_name,
                         guild.channels,
                     )
                 if not target:
@@ -1229,7 +1226,7 @@ class FunAI(commands.Cog):
         content_lower = message.content.lower()
         is_mentioned_by_ping = self.bot.user in message.mentions
         is_mentioned_by_name = (
-            re.search(r"\b" + re.escape(bot_name_lower) + r"\b", content_lower)
+            re.search("\\b" + re.escape(bot_name_lower) + "\\b", content_lower)
             is not None
         )
         bot_mentioned = is_mentioned_by_ping or is_mentioned_by_name
@@ -1281,7 +1278,7 @@ class FunAI(commands.Cog):
                 ),
             }
         )
-        self.message_since_last_reply[(guild_id, message.channel.id)] += 1
+        self.message_since_last_reply[guild_id, message.channel.id] += 1
         if not self.clients:
             return
         should_reply = self._should_reply(message, bot_mentioned)
@@ -1499,12 +1496,8 @@ class FunAI(commands.Cog):
                                     )
                                 )
                                 task.add_done_callback(
-                                    lambda t: (
-                                        t.exception()
-                                        and print(
-                                            f"Summarize task error: {t.exception()}"
-                                        )
-                                    )
+                                    lambda t: t.exception()
+                                    and print(f"Summarize task error: {t.exception()}")
                                 )
                                 self.user_memory_recent[send_author_id] = deque(
                                     remaining, maxlen=10
@@ -1512,9 +1505,8 @@ class FunAI(commands.Cog):
 
                 task = asyncio.create_task(send_it())
                 task.add_done_callback(
-                    lambda t: (
-                        t.exception() and print(f"Send it task error: {t.exception()}")
-                    )
+                    lambda t: t.exception()
+                    and print(f"Send it task error: {t.exception()}")
                 )
             except Exception as e:
                 print(f"on_message handler error: {e}")
@@ -1529,10 +1521,8 @@ class FunAI(commands.Cog):
                             self._summarize_memory_safe(message.author.id, to_summarize)
                         )
                         task.add_done_callback(
-                            lambda t: (
-                                t.exception()
-                                and print(f"Summarize task error: {t.exception()}")
-                            )
+                            lambda t: t.exception()
+                            and print(f"Summarize task error: {t.exception()}")
                         )
                         self.user_memory_recent[message.author.id] = deque(
                             remaining, maxlen=10
@@ -1540,9 +1530,8 @@ class FunAI(commands.Cog):
 
         task = asyncio.create_task(handle_reply())
         task.add_done_callback(
-            lambda t: (
-                t.exception() and print(f"Handle reply task error: {t.exception()}")
-            )
+            lambda t: t.exception()
+            and print(f"Handle reply task error: {t.exception()}")
         )
 
     def _build_system_prompt(
@@ -1566,7 +1555,7 @@ class FunAI(commands.Cog):
         )
         message_text = f"**Q:** {question}\n**A:** {response}"
         if len(message_text) > 1900:
-            message_text = f"**Q:** {question}\n**A:** {response[: 1900 - len(f'**Q:** {question}\n**A:** ...')]}..."
+            message_text = f"**Q:** {question}\n**A:** {response[:1900 - len(f'**Q:** {question}\n**A:** ...')]}..."
         await self._send_safe(ctx, message_text)
         for url in urls:
             await ctx.send(url)
@@ -1582,7 +1571,7 @@ class FunAI(commands.Cog):
         )
         message_text = f"📖 **Story Time:**\n{response}"
         if len(message_text) > 1900:
-            message_text = f"📖 **Story Time:**\n{response[: 1900 - len('📖 **Story Time:**\n...')]}..."
+            message_text = f"📖 **Story Time:**\n{response[:1900 - len('📖 **Story Time:**\n...')]}..."
         await self._send_safe(ctx, message_text)
         for url in urls:
             await ctx.send(url)
@@ -1602,7 +1591,7 @@ class FunAI(commands.Cog):
         message_text = f"{member.mention} {response}"
         if len(message_text) > 1900:
             message_text = (
-                f"{member.mention} {response[: 1900 - len(f'{member.mention} ...')]}..."
+                f"{member.mention} {response[:1900 - len(f'{member.mention} ...')]}..."
             )
         await self._send_safe(ctx, message_text)
         for url in urls:
@@ -1620,7 +1609,7 @@ class FunAI(commands.Cog):
         message_text = f"{member.mention} {response}"
         if len(message_text) > 1900:
             message_text = (
-                f"{member.mention} {response[: 1900 - len(f'{member.mention} ...')]}..."
+                f"{member.mention} {response[:1900 - len(f'{member.mention} ...')]}..."
             )
         await self._send_safe(ctx, message_text)
         for url in urls:
@@ -1667,7 +1656,7 @@ class FunAI(commands.Cog):
         message_text = f"{member.mention} {response}"
         if len(message_text) > 1900:
             message_text = (
-                f"{member.mention} {response[: 1900 - len(f'{member.mention} ...')]}..."
+                f"{member.mention} {response[:1900 - len(f'{member.mention} ...')]}..."
             )
         await self._send_safe(ctx, message_text)
         for url in urls:
@@ -1719,7 +1708,7 @@ class FunAI(commands.Cog):
         )
         message_text = f"🚢 **{user1.display_name} x {user2.display_name}**\n{response}"
         if len(message_text) > 1900:
-            message_text = f"🚢 **{user1.display_name} x {user2.display_name}**\n{response[: 1900 - len(f'🚢 **{user1.display_name} x {user2.display_name}**\n...')]}..."
+            message_text = f"🚢 **{user1.display_name} x {user2.display_name}**\n{response[:1900 - len(f'🚢 **{user1.display_name} x {user2.display_name}**\n...')]}..."
         await self._send_safe(ctx, message_text)
         for url in urls:
             await ctx.send(url)
@@ -1763,7 +1752,7 @@ class FunAI(commands.Cog):
         message_text = f"**{thing}:** {response}"
         if len(message_text) > 1900:
             message_text = (
-                f"**{thing}:** {response[: 1900 - len(f'**{thing}:** ...')]}..."
+                f"**{thing}:** {response[:1900 - len(f'**{thing}:** ...')]}..."
             )
         await self._send_safe(ctx, message_text)
         for url in urls:

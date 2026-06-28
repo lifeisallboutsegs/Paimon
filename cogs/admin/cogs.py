@@ -1,16 +1,9 @@
 import logging
-
 from pathlib import Path
-
 import aiohttp
-
 import random
-
 from discord.ext import commands
-
-
 from config import Config
-
 from groq import AsyncGroq
 
 logger = logging.getLogger("bot.admin.cogs")

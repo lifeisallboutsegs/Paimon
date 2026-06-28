@@ -6,6 +6,7 @@ from utils.checks import mod_role_or_permission
 
 
 class ModerationWarnings(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

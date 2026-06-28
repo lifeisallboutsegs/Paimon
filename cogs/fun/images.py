@@ -1,7 +1,5 @@
 from discord import app_commands
-
 from discord.ext import commands
-
 import aiohttp
 
 
@@ -74,7 +72,7 @@ class FunImages(commands.Cog):
     async def quote(self, ctx: commands.Context):
         data = await self._fetch("https://api.quotable.io/random")
         if data:
-            await ctx.send(f"""ℹ️ Quote\n"{data["content"]}"\n\n- {data["author"]}""")
+            await ctx.send(f"""ℹ️ Quote\n"{data['content']}"\n\n- {data['author']}""")
         else:
             await ctx.send("❌ Oops!\nCouldn't get a quote!")
 

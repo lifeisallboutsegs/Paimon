@@ -1,16 +1,10 @@
 from datetime import datetime, timedelta, timezone
-
 import random
-
-
 from discord.ext import commands
 
 DAILY_AMOUNT = 100
-
 DAILY_COOLDOWN = timedelta(hours=24)
-
 WORK_COOLDOWN = timedelta(hours=1)
-
 WORK_MESSAGES = [
     "You fixed a bug and earned",
     "You delivered a package and got",

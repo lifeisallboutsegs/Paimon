@@ -1,23 +1,14 @@
 import io
-
 import re
-
 import logging
-
 import discord
-
 from discord import app_commands
-
 from discord.ext import commands
-
 from bs4 import BeautifulSoup
-
 import aiohttp
-
 from config import Config
 
 logger = logging.getLogger(__name__)
-
 PROXY_URL = "http://100.89.113.40:8080"
 
 
@@ -135,6 +126,7 @@ class Lyrics(commands.Cog):
         cog_ref = self
 
         class SongSelect(discord.ui.View):
+
             def __init__(self, hits, ctx):
                 super().__init__(timeout=60)
                 self.hits = hits

@@ -1,13 +1,12 @@
 import logging
-
 import discord
-
 from discord.ext import commands
 
 logger = logging.getLogger("bot.errors")
 
 
 class Errors(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

@@ -7,6 +7,7 @@ from utils.helpers import xp_for_level
 
 
 class LevelingCore(commands.Cog):
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
