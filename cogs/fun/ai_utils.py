@@ -107,11 +107,6 @@ def serialize_assistant_message(msg) -> dict:
 def resolve_mentions_in_message(
     content: str, mentions, role_mentions, channel_mentions
 ) -> str:
-    for user in mentions:
-        content = content.replace(f"<@{user.id}>", f"@{user.display_name}")
-        content = content.replace(f"<@!{user.id}>", f"@{user.display_name}")
-    for role in role_mentions:
-        content = content.replace(f"<@&{role.id}>", f"@{role.name}")
     for channel in channel_mentions:
         content = content.replace(f"<#{channel.id}>", f"#{channel.name}")
     return content

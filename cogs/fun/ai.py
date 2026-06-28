@@ -1371,7 +1371,6 @@ class FunAI(commands.Cog):
                     parse_reply_tags(reply)
                 )
                 reply_text = sanitize_custom_emoji(reply_text)
-                reply_text = remove_duplicate_mentions(reply_text)
                 if urls:
                     reply_text = strip_url_from_text(reply_text, urls)
                 send_delay = delay_seconds
