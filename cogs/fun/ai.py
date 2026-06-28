@@ -1902,5 +1902,36 @@ class FunAI(commands.Cog):
             await ctx.send("urban dictionary lookup failed")
 
 
+    @commands.hybrid_command(name="view_memory", description="View your conversation memory!")
+    async def view_memory(self, ctx: commands.Context):
+        await ctx.defer()
+        await self._hydrate_user_memory(ctx.author.id)
+        
+        embed = discord.Embed(title="Your Memory", color=discord.Color.blue())
+        
+        if self.user_memory_summary[ctx.author.id]:
+            embed.add_field(name="Summary", value=self.user_memory_summary[ctx.author.id], inline=False)
+        else:
+            embed.add_field(name="Summary", value="No summary yet", inline=False)
+        
+        recent_messages = self.user_memory_recent[ctx.author.id]
+        if recent_messages:
+            for i, msg in enumerate(recent_messages):
+                role = "🤖 Bot" if msg["role"] == "assistant" else "👤 You"
+                embed.add_field(name=f"{role} #{len(recent_messages)-i}", value=msg["content"][:1024], inline=False)
+        else:
+            embed.add_field(name="Recent Messages", value="No recent messages", inline=False)
+        
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="clear_memory", description="Clear your conversation memory!")
+    async def clear_memory(self, ctx: commands.Context):
+        await ctx.defer()
+        self.user_memory_summary[ctx.author.id] = ""
+        self.user_memory_recent[ctx.author.id] = deque(maxlen=10)
+        await self._clear_user_memory_storage(ctx.author.id)
+        await ctx.send("✅ Your memory has been cleared!")
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(FunAI(bot))
